@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vincent Pay × GoMerch × ShopeePay</title>
+<style>
+:root{--ink:#1c2230;--mute:#667085;--line:#e4e7ec;--bg:#fff;--panel:#fff;--ok:#12a150;--err:#d92d20;--warn:#b54708;--warnbg:#fffaeb;
+  --c:#2b3a67;--cd:#2b3a67;--soft:#eef1f9}
+body[data-page=gopay]{--c:#00a651;--cd:#008a43;--soft:#e7f7ee}
+body[data-page=shopee]{--c:#f05a28;--cd:#d4461a;--soft:#feeee8}
+body[data-page=auto]{--c:#0e7c86;--cd:#0b6670;--soft:#e4f4f5}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+.nav{display:flex;align-items:center;gap:10px 22px;flex-wrap:wrap;padding:12px clamp(16px,4vw,40px);border-bottom:1px solid var(--line);background:#fff;position:sticky;top:0;z-index:10}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;white-space:nowrap}
+.logo b{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:var(--cd);color:#fff;font-size:14px;letter-spacing:.02em}
+.tabs{display:flex;gap:4px;flex:1;overflow-x:auto}
+.tab{border:0;background:none;font:inherit;font-weight:600;padding:7px 14px;border-radius:99px;cursor:pointer;color:var(--mute);white-space:nowrap}
+.tab:hover{background:#f2f4f7;color:var(--ink)}
+.tab[aria-current=page]{background:var(--c);color:#fff}
+.band{background:var(--c);color:#fff;padding:30px clamp(16px,4vw,40px) 64px}
+.band .in{max-width:1000px;margin:0 auto}
+.band h1{font-size:clamp(26px,5vw,38px);line-height:1.1;margin:0 0 6px;letter-spacing:-.02em}
+.band p{margin:0;opacity:.92;max-width:56ch}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:#fff;color:var(--ink);border-radius:99px;padding:3px 12px 3px 10px;font-size:13px;font-weight:600}
+.chip:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--err)}
+.chip.on:before{background:var(--ok)}
+main{max-width:1000px;margin:-40px auto 0;padding:0 clamp(16px,4vw,40px) 60px;position:relative}
+section[hidden]{display:none}
+.grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));margin-bottom:18px;align-items:start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 1px 3px rgba(16,24,40,.07),0 8px 24px -12px rgba(16,24,40,.12)}
+.card h2{font-size:17px;margin:0 0 2px}
+.sub{color:var(--mute);font-size:14px;margin:0 0 12px}
+label{display:block;font-weight:600;font-size:13px;margin:13px 0 5px}
+input,textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;background:#fff;color:var(--ink)}
+input{font-size:16px}
+textarea{font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;min-height:56px;resize:vertical}
+input:focus,textarea:focus{outline:0;border-color:var(--c);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 22%,transparent)}
+.btn{font:inherit;font-weight:700;border:0;background:var(--cd);color:#fff;border-radius:10px;padding:10px 16px;cursor:pointer;transition:filter .1s,transform .05s}
+.btn:hover{filter:brightness(1.07)}.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.55;cursor:wait}
+.btn.alt{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
+.btn.alt:hover{background:#f9fafb;filter:none}
+.btn.sm{padding:5px 12px;font-size:13px}
+.btn.full{width:100%;margin-top:14px}
+.quick{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.quick .btn{font-weight:600}
+.msg{font-size:14px;font-weight:600;margin-top:9px;min-height:1.3em}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.qrbox{min-height:330px;display:grid;place-items:center;text-align:center}
+.qrbox img{width:100%;max-width:270px;border:1px solid var(--line);border-radius:12px;padding:8px}
+.amt{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:12px 0 6px}
+.state{display:inline-block;font-size:14px;font-weight:600;padding:4px 14px;border-radius:99px;background:#fef0c7;color:var(--warn)}
+.state.ok{background:#d1fadf;color:#05603a}.state.bad{background:#fee4e2;color:#b42318}
+.empty{color:var(--mute)}
+.note{background:var(--warnbg);color:var(--warn);border-radius:10px;padding:8px 12px;font-size:13px;margin-bottom:10px}
+.lock{background:var(--soft);border-radius:10px;padding:12px 14px;color:var(--ink);font-size:14px}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:12.5px;font-weight:600;color:var(--mute);padding:8px 8px;border-bottom:1px solid var(--line)}
+td{padding:10px 8px;border-bottom:1px solid #f0f2f5;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.m,.mono{font:12.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.badge{font-size:12px;font-weight:700;padding:2px 9px;border-radius:99px;background:#d1fadf;color:#05603a}
+.badge.x{background:#f2f4f7;color:var(--mute)}
+details{margin-top:14px}
+summary{cursor:pointer;color:var(--mute);font-size:14px;font-weight:600}
+.pick{display:grid;gap:8px;margin-top:10px}
+.prov{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));margin-bottom:18px}
+.prov .card{border-top:5px solid var(--pc)}
+.prov .go{--pc:#00a651}.prov .sh{--pc:#f05a28}
+.prov h2{font-size:20px}
+.prov .chips{margin:10px 0 14px}
+.prov .chip{background:#f2f4f7}
+.steps{margin:0;padding:0;list-style:none;display:grid;gap:12px;counter-reset:s}
+.steps li{display:flex;gap:12px;align-items:flex-start;counter-increment:s}
+.steps li:before{content:counter(s);flex:none;width:28px;height:28px;border-radius:50%;background:var(--soft);color:var(--cd);font-weight:800;display:grid;place-items:center;font-size:14px}
+.sw{display:flex;align-items:center;gap:10px;margin:14px 0 4px;font-weight:600;cursor:pointer}
+.sw input{width:auto;accent-color:var(--cd);transform:scale(1.25)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px;margin:12px 0}
+.kv dt{color:var(--mute)}.kv dd{margin:0;font-weight:600;word-break:break-word}
+.kv dd.bad{color:var(--err)}
+.inline{display:flex;gap:8px;align-items:center}.inline input{width:90px}
+dialog{border:0;border-radius:16px;padding:22px;width:min(380px,92vw);box-shadow:0 20px 60px rgba(16,24,40,.3);color:var(--ink)}
+dialog::backdrop{background:rgba(16,24,40,.55)}
+</style>
+</head>
+<body data-page="home">
+<div class="nav">
+ <div class="logo"><b>VP</b>Vincent Pay</div>
+ <nav class="tabs" aria-label="Menu">
+  <button class="tab" data-v="home">Beranda</button>
+  <button class="tab" data-v="gopay">GoMerch</button>
+  <button class="tab" data-v="shopee">ShopeePay</button>
+  <button class="tab" data-v="auto">Auto Refresh</button>
+  <button class="tab" data-v="api">API</button>
+ </nav>
+ <% if (locked) { %><button class="btn alt sm" id="adm"><%- admin ? 'Keluar' : 'Masuk admin' %></button><% } %>
+</div>
+
+<div class="band"><div class="in">
+ <h1 id="b-t"></h1><p id="b-p"></p>
+ <div class="chips" id="b-chips"></div>
+</div></div>
+
+<main>
+ <section id="v-home">
+  <div class="prov">
+   <div class="card go"><h2>GoMerch</h2><p class="sub">GoPay Merchant. Login pakai OTP, token diperpanjang otomatis.</p>
+    <div class="chips" id="hc-gopay"></div><button class="btn" style="--cd:#008a43" data-go="gopay">Buka GoMerch</button></div>
+   <div class="card sh"><h2>ShopeePay</h2><p class="sub">ShopeePay Partner. Login OTP juga, atau tempel token manual.</p>
+    <div class="chips" id="hc-shopee"></div><button class="btn" style="--cd:#d4461a" data-go="shopee">Buka ShopeePay</button></div>
+  </div>
+  <div class="card"><h2>Cara pakainya</h2><p class="sub">Cuma sekali di awal.</p>
+   <ol class="steps">
+    <li><span>Buka menu GoMerch atau ShopeePay, lalu login pakai OTP.</span></li>
+    <li><span>Isi QRIS statis tokomu di kotak Koneksi, klik Simpan.</span></li>
+    <li><span>Di Kasir isi nominal, klik Buat QRIS. Pembayaran masuk dicek otomatis tiap 4 detik.</span></li>
+   </ol></div>
+ </section>
+ <section id="v-gopay" hidden></section>
+ <section id="v-shopee" hidden></section>
+ <section id="v-auto" hidden></section>
+ <section id="v-api" hidden>
+  <div class="card"><h2>Endpoint</h2><p class="sub">Satu set untuk dua provider. Kirim <span class="mono">provider</span> berisi <span class="mono">gopay</span> atau <span class="mono">shopee</span>.</p>
+   <div class="tw"><table><thead><tr><th>Method</th><th>Endpoint</th><th>Body</th><th></th></tr></thead><tbody id="apis"></tbody></table></div></div>
+ </section>
+</main>
+
+<% if (locked) { %>
+<dialog id="dlg"><form method="dialog" onsubmit="return false">
+ <div class="row"><h2 style="margin:0;font-size:18px">Masuk admin</h2><button class="btn alt sm" type="button" onclick="dlg.close()">Tutup</button></div>
+ <label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password">
+ <button class="btn full" id="dologin">Masuk</button><div class="msg" id="lmsg" style="color:var(--err)"></div>
+</form></dialog>
+<% } %>
+
+<script>
+const ADMIN=<%- admin ? 'true' : 'false' %>, LOCKED=<%- locked ? 'true' : 'false' %>, PERSIST=<%- persistent ? 'true' : 'false' %>;
+const PV={gopay:{n:'GoMerch',f:'GoPay Merchant'},shopee:{n:'ShopeePay',f:'ShopeePay Partner'}};
+const HEAD={home:['Vincent Pay','Kasir QRIS untuk GoMerch dan ShopeePay, dua-duanya di satu dashboard.'],
+ gopay:['GoMerch','GoPay Merchant: kasir QRIS, koneksi akun, dan riwayat transaksi.'],
+ shopee:['ShopeePay','ShopeePay Partner: kasir QRIS, koneksi akun, dan riwayat transaksi.'],
+ auto:['Auto Refresh','Token diperpanjang otomatis sesuai jadwal, tanpa login OTP ulang.'],
+ api:['API','Dipakai bot atau website lain buat bikin QRIS dan ngecek pembayaran.']};
+const $=(s,r=document)=>r.querySelector(s), rp=n=>'Rp '+Number(n).toLocaleString('id-ID');
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const errTxt=e=>typeof e==='string'?e:JSON.stringify(e);
+async function api(u,b){try{const r=await fetch(u,b?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}:{});return await r.json()}catch(e){return{success:false,error:e.message}}}
+const timers={}; let otpTok='', shChal='', shVer='', last=null;
+const say=(el,ok,t)=>{el.style.color=ok?'var(--ok)':'var(--err)';el.textContent=t};
+const lock='<div class="lock">Menu ini dikunci. Klik <b>Masuk admin</b> di pojok kanan atas.</div>';
+
+function otpCard(p){
+ if(!ADMIN)return `<div class="card"><h2>Login OTP</h2><p class="sub">Cara paling gampang buat dapat token.</p>${lock}</div>`;
+ if(p==='gopay')return `<div class="card"><h2>Login OTP</h2><p class="sub">OTP dikirim ke nomor merchant. Token tersimpan dan diperpanjang otomatis.</p>
+  <label for="ph">Nomor HP merchant</label><input id="ph" type="tel" placeholder="0812xxxxxxx">
+  <button class="btn alt full" id="otpreq">Kirim OTP</button>
+  <label for="otp">Kode OTP</label><input id="otp" inputmode="numeric" autocomplete="one-time-code">
+  <button class="btn full" id="otpver">Verifikasi dan simpan</button><div class="msg" id="otpmsg"></div></div>`;
+ return `<div class="card"><h2>Login OTP</h2><p class="sub">Login pakai akun Shopee Partner. Token diperpanjang sendiri selama sesi akunnya hidup.</p>
+  <label for="s-ph">Nomor HP akun Partner</label><input id="s-ph" type="tel" placeholder="0812xxxxxxx">
+  <label for="s-pw">Password (isi hanya kalau akunmu pakai password)</label><input id="s-pw" type="password" autocomplete="off">
+  <button class="btn alt full" id="s-req">Kirim OTP</button>
+  <label for="s-otp">Kode OTP</label><input id="s-otp" inputmode="numeric" autocomplete="one-time-code">
+  <button class="btn full" id="s-ver">Verifikasi dan simpan</button>
+  <div class="pick" id="s-pick"></div><div class="msg" id="s-msg"></div>
+  <div class="row" style="margin-top:6px"><span class="sub" id="s-who" style="margin:0"></span><button class="btn alt sm" id="s-out" hidden>Putuskan</button></div></div>`;
+}
+function page(p){
+ const v=PV[p];
+ return `
+ <div class="grid">
+  <div class="card"><h2>Kasir</h2><p class="sub">Bikin QRIS dinamis. Status dicek tiap 4 detik, berlaku 15 menit.</p>
+   <label for="${p}-amt">Nominal (Rp)</label><input id="${p}-amt" type="number" min="1" inputmode="numeric" placeholder="15000">
+   <div class="quick">${[10000,25000,50000,100000].map(n=>`<button class="btn alt sm" data-chip="${p}" data-n="${n}">${n.toLocaleString('id-ID')}</button>`).join('')}</div>
+   <button class="btn full" data-create="${p}">Buat QRIS</button><div class="msg" id="${p}-cmsg"></div></div>
+  <div class="card qrbox" aria-live="polite"><div id="${p}-qr"><span class="empty">QRIS muncul di sini.</span></div></div>
+ </div>
+ <div class="grid">
+  ${otpCard(p)}
+  <div class="card"><h2>Koneksi</h2><p class="sub">Token dan QRIS statis disimpan di server dan tidak ditampilkan lagi.</p>
+   ${ADMIN?`${PERSIST?'':'<div class="note">Data disimpan sementara di server ini. Kalau server restart dan token hilang, tinggal login ulang.</div>'}
+   <label for="${p}-qs">QRIS statis</label><textarea id="${p}-qs" placeholder="000201010211..."></textarea>
+   <details><summary>Isi token manual</summary>
+   ${p==='gopay'?`<label for="at">Access token</label><textarea id="at"></textarea><label for="rt">Refresh token</label><textarea id="rt"></textarea>`:`<label for="st">Token Partner Portal (B:...)</label><textarea id="st"></textarea>`}
+   </details>
+   <button class="btn full" data-save="${p}">Simpan</button><div class="msg" id="${p}-amsg"></div>`:lock}</div>
+ </div>
+ <div class="card"><div class="row"><div><h2>Riwayat 7 hari</h2><p class="sub" style="margin:0">Transaksi masuk ${v.n}</p></div>${ADMIN?`<button class="btn alt sm" data-hist="${p}">Muat ulang</button>`:''}</div>
+  ${ADMIN?`<div class="tw" style="margin-top:8px"><table><thead><tr><th>Waktu</th><th>Nominal</th><th>Status</th><th>ID</th></tr></thead><tbody id="${p}-rows"><tr><td colspan="4" class="empty">Memuat...</td></tr></tbody></table></div>`:`<div style="margin-top:12px">${lock}</div>`}</div>`;
+}
+$('#v-gopay').innerHTML=page('gopay');$('#v-shopee').innerHTML=page('shopee');
+
+function autoCard(p){
+ const v=PV[p];
+ return `<div class="card" id="au-${p}"><h2>${v.n}</h2><p class="sub">${p==='gopay'?'Pakai refresh token. Hasilnya langsung disimpan di server.':'Pakai sesi akun dari login OTP. Token manual tidak bisa diperpanjang.'}</p>
+  <dl class="kv" id="au-${p}-kv"><dt>Status</dt><dd>Memuat...</dd></dl>
+  ${ADMIN?`<label class="sw"><input type="checkbox" id="au-${p}-on"> Auto refresh aktif</label>
+  <label for="au-${p}-min">Jalan tiap (menit, 5 sampai 720)</label>
+  <div class="inline"><input id="au-${p}-min" type="number" min="5" max="720" inputmode="numeric"><button class="btn alt sm" data-aucfg="${p}">Simpan jadwal</button></div>
+  <button class="btn full" data-aunow="${p}">Refresh sekarang</button><div class="msg" id="au-${p}-msg"></div>`:lock}</div>`;
+}
+$('#v-auto').innerHTML=`<div class="grid">${autoCard('gopay')}${autoCard('shopee')}</div>
+ <div class="card"><h2>Cara kerjanya</h2><p class="sub" style="margin:0" id="au-how"></p></div>`;
+const ago=ms=>{if(ms==null)return '-';const m=Math.round(ms/60000);return m<1?'baru saja':m<60?m+' menit lalu':m<1440?Math.round(m/60)+' jam lalu':Math.round(m/1440)+' hari lalu'};
+const inn=ms=>{if(ms==null)return '-';if(ms<=0)return 'sekarang';const m=Math.round(ms/60000);return m<1?'kurang dari 1 menit':m<60?m+' menit lagi':Math.round(m/60)+' jam lagi'};
+function paintAuto(d){
+ $('#au-how').textContent=d.loop?'Server ini jalan terus, jadi refresh jalan sendiri di server sesuai jadwal. Halaman ini tidak perlu dibuka.':'Server ini tidak menjalankan loop sendiri (umumnya karena di Vercel, yang tidak punya proses hidup terus). Refresh jalan selama halaman ini terbuka atau selama bot nyala (loop di bot/payment.js). Di luar itu, token tetap diperpanjang otomatis saat dipakai dan ketahuan kedaluwarsa.';
+ for(const p of ['gopay','shopee']){
+  const s=d[p],kv=$('#au-'+p+'-kv');if(!kv)continue;
+  const st=!s.hasToken?'Token kosong':!s.canRefresh?'Token ada, tapi tidak bisa diperpanjang otomatis':s.likelyExpired?'Gagal berulang, kemungkinan perlu login OTP lagi':'Siap';
+  kv.innerHTML=`<dt>Status</dt><dd class="${s.likelyExpired?'bad':''}">${st}</dd>
+   ${s.merchant?`<dt>Akun</dt><dd>${esc(s.merchant)}</dd>`:''}
+   <dt>Terakhir refresh</dt><dd>${ago(s.ageMs)}</dd>
+   <dt>Jadwal berikutnya</dt><dd>${s.auto.enabled?(s.canRefresh?inn(s.nextRefreshAt?s.nextRefreshAt-Date.now():0):'-'):'nonaktif'}</dd>
+   ${s.msLeft!=null?`<dt>Token berlaku</dt><dd>${s.msLeft>0?inn(s.msLeft):'sudah lewat'}</dd>`:''}
+   ${s.lastError?`<dt>Error terakhir</dt><dd class="bad">${esc(s.lastError)} (${s.failCount}x)</dd>`:''}`;
+  const on=$('#au-'+p+'-on');if(on&&document.activeElement!==on)on.checked=s.auto.enabled;
+  const mi=$('#au-'+p+'-min');if(mi&&document.activeElement!==mi)mi.value=s.auto.minutes;
+ }
+}
+async function loadAuto(tick){
+ if(!ADMIN)return;
+ const d=tick?await api('/api/auto/tick',{}):await api('/api/token/status');
+ if(d.success)paintAuto(d);
+}
+setInterval(()=>{if(document.body.dataset.page==='auto')loadAuto(true)},30000);   // selama menu ini terbuka
+setInterval(()=>{if(!document.hidden&&ADMIN)api('/api/auto/tick',{})},60000);       // selama halaman terbuka
+
+const APIS=[['POST','/api/pay/create','provider, amount'],['POST','/api/pay/check','provider, amount, created_at'],['GET','/api/pay/history?provider=gopay',''],
+ ['POST','/api/gopay/otp','phone'],['POST','/api/gopay/verify','otp, otp_token'],
+ ['POST','/api/shopee/otp','phone, password?'],['POST','/api/shopee/verify','challenge, otp'],['POST','/api/shopee/select','verification, merchant_id'],
+ ['GET','/api/token/status',''],['POST','/api/refresh','provider'],['POST','/api/auto/tick',''],['POST','/api/auto/config','provider, enabled, minutes'],
+ ['POST','/api/admin/config','provider, token, qris'],['GET','/api/health','']];
+$('#apis').innerHTML=APIS.map(a=>`<tr><td><b>${a[0]}</b></td><td class="m">${a[1]}</td><td class="m">${a[2]||'-'}</td><td><button class="btn alt sm" data-copy="${location.origin}${a[1]}">Salin</button></td></tr>`).join('');
+
+function chipsFor(p){const s=last&&last[p];if(!s)return '';return `<span class="chip ${s.token?'on':''}">Token ${s.token?'tersambung':'kosong'}</span><span class="chip ${s.qris?'on':''}">QRIS ${s.qris?'siap':'kosong'}</span>`}
+function show(v){
+ if(!PV[v]&&v!=='api'&&v!=='auto')v='home';
+ document.body.dataset.page=v;
+ ['home','gopay','shopee','auto','api'].forEach(k=>$('#v-'+k).hidden=k!==v);
+ document.querySelectorAll('.tab').forEach(t=>{t.dataset.v===v?t.setAttribute('aria-current','page'):t.removeAttribute('aria-current')});
+ $('#b-t').textContent=HEAD[v][0];$('#b-p').textContent=HEAD[v][1];
+ $('#b-chips').innerHTML=PV[v]?chipsFor(v):'';
+ if(location.hash!=='#'+v)history.replaceState(null,'','#'+v);
+ if(ADMIN&&PV[v])hist(v);
+ if(v==='auto')loadAuto(false);
+}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>show(t.dataset.v));
+document.addEventListener('click',e=>{
+ const b=e.target.closest('button');if(!b)return;
+ if(b.dataset.go)show(b.dataset.go);
+ if(b.dataset.chip)$('#'+b.dataset.chip+'-amt').value=b.dataset.n;
+ if(b.dataset.create)create(b.dataset.create,b);
+ if(b.dataset.save)save(b.dataset.save,b);
+ if(b.dataset.hist)hist(b.dataset.hist);
+ if(b.dataset.aunow)autoNow(b.dataset.aunow,b);
+ if(b.dataset.aucfg)autoCfg(b.dataset.aucfg,b);
+ if(b.dataset.copy)navigator.clipboard.writeText(b.dataset.copy).then(()=>{b.textContent='Tersalin';setTimeout(()=>b.textContent='Salin',1200)});
+});
+
+async function create(p,btn){
+ clearInterval(timers[p]);const m=$('#'+p+'-cmsg');m.textContent='';btn.disabled=true;
+ const d=await api('/api/pay/create',{provider:p,amount:$('#'+p+'-amt').value});btn.disabled=false;
+ if(!d.success){say(m,false,d.error);return}
+ const end=Date.now()+d.expires_in*1000, box=$('#'+p+'-qr');
+ box.innerHTML=`<img src="${d.image}" alt="QRIS ${rp(d.amount)}"><div class="amt">${rp(d.amount)}</div><span class="state" id="${p}-st">Menunggu pembayaran</span>`;
+ const st=$('#'+p+'-st');
+ timers[p]=setInterval(async()=>{
+  if(Date.now()>end){clearInterval(timers[p]);st.className='state bad';st.textContent='QRIS kedaluwarsa';return}
+  const c=await api('/api/pay/check',{provider:p,amount:d.amount,created_at:d.created_at});
+  if(c.status==='PAID'){clearInterval(timers[p]);st.className='state ok';st.textContent='Pembayaran diterima';if(ADMIN)hist(p)}
+  else if(!c.success){st.className='state bad';st.textContent=c.error}
+ },4000);
+}
+async function autoNow(p,btn){
+ const m=$('#au-'+p+'-msg');btn.disabled=true;const d=await api('/api/refresh',{provider:p});btn.disabled=false;
+ say(m,d.success,d.success?'Token berhasil diperpanjang.':errTxt(d.error));if(d.status)loadAuto(false);status();
+}
+async function autoCfg(p,btn){
+ const m=$('#au-'+p+'-msg');btn.disabled=true;
+ const d=await api('/api/auto/config',{provider:p,enabled:$('#au-'+p+'-on').checked,minutes:$('#au-'+p+'-min').value});btn.disabled=false;
+ say(m,d.success,d.success?'Jadwal tersimpan.':errTxt(d.error));loadAuto(false);
+}
+async function save(p,btn){
+ const body={provider:p,qris:$('#'+p+'-qs').value};
+ if(p==='gopay'){body.accessToken=$('#at').value;body.refreshToken=$('#rt').value}else body.token=$('#st').value;
+ btn.disabled=true;const d=await api('/api/admin/config',body);btn.disabled=false;
+ const m=$('#'+p+'-amsg');say(m,d.success,d.success?'Tersimpan.':d.error);
+ if(d.success){document.querySelectorAll('#v-'+p+' textarea').forEach(t=>t.value='');status()}
+}
+async function hist(p){
+ const tb=$('#'+p+'-rows');if(!tb)return;
+ const d=await api('/api/pay/history?provider='+p);
+ if(!d.success){tb.innerHTML=`<tr><td colspan="4" style="color:var(--err);white-space:normal">${esc(errTxt(d.error))}</td></tr>`;return}
+ tb.innerHTML=d.data.length?d.data.map(t=>`<tr><td>${new Date(t.time).toLocaleString('id-ID')}</td><td><b>${rp(t.amount)}</b></td><td><span class="badge ${/succ|sukses|settle|capture/i.test(t.status||'')?'':'x'}">${esc(t.status||'-')}</span></td><td class="m">${esc(String(t.id).slice(-10))}</td></tr>`).join(''):'<tr><td colspan="4" class="empty">Belum ada transaksi.</td></tr>';
+}
+async function status(){
+ if(!ADMIN)return;
+ const d=await api('/api/admin/status');if(!d.success)return;last=d;
+ for(const p of ['gopay','shopee'])$('#hc-'+p).innerHTML=chipsFor(p);
+ const v=document.body.dataset.page;if(PV[v])$('#b-chips').innerHTML=chipsFor(v);
+ const who=$('#s-who'),out=$('#s-out');
+ if(who){who.textContent=d.shopee.otp?('Terhubung sebagai '+(d.shopee.merchant||'merchant')):'';out.hidden=!d.shopee.otp}
+}
+
+document.addEventListener('click',async e=>{
+ const id=e.target.id, btn=e.target;
+ if(id==='otpreq'){const m=$('#otpmsg');btn.disabled=true;const d=await api('/api/gopay/otp',{phone:$('#ph').value});btn.disabled=false;
+  if(d.success){otpTok=d.otp_token;say(m,true,'OTP dikirim.')}else say(m,false,errTxt(d.error))}
+ if(id==='otpver'){const m=$('#otpmsg');if(!otpTok)return say(m,false,'Kirim OTP dulu.');
+  const d=await api('/api/gopay/verify',{otp:$('#otp').value,otp_token:otpTok});
+  say(m,d.success,d.success?'Berhasil, token tersimpan.':errTxt(d.error));if(d.success)status()}
+ if(id==='s-req'){const m=$('#s-msg');btn.disabled=true;
+  const d=await api('/api/shopee/otp',{phone:$('#s-ph').value,password:$('#s-pw').value});btn.disabled=false;
+  if(d.success){shChal=d.challenge;say(m,true,'OTP dikirim lewat '+({1:'SMS',2:'telepon',3:'WhatsApp',4:'email',5:'Zalo'}[d.channel]||'channel #'+d.channel)+'.')}else say(m,false,errTxt(d.error))}
+ if(id==='s-ver'){const m=$('#s-msg');if(!shChal)return say(m,false,'Kirim OTP dulu.');btn.disabled=true;
+  const d=await api('/api/shopee/verify',{challenge:shChal,otp:$('#s-otp').value});btn.disabled=false;
+  if(!d.success)return say(m,false,errTxt(d.error));
+  if(d.select){shVer=d.verification;say(m,true,'Ada beberapa merchant, pilih salah satu:');
+   $('#s-pick').innerHTML=d.merchants.map(x=>`<button class="btn alt" data-pick="${esc(x.id)}">${esc(x.name||x.id)}</button>`).join('');return}
+  say(m,true,'Berhasil login sebagai '+d.merchant+'.');shChal='';status()}
+ if(e.target.dataset&&e.target.dataset.pick){const m=$('#s-msg');
+  const d=await api('/api/shopee/select',{verification:shVer,merchant_id:e.target.dataset.pick});
+  if(d.success){$('#s-pick').innerHTML='';say(m,true,'Berhasil login sebagai '+d.merchant+'.');shVer='';shChal='';status()}else say(m,false,errTxt(d.error))}
+ if(id==='s-out'){await api('/api/shopee/logout',{});say($('#s-msg'),true,'Koneksi ShopeePay diputus.');status()}
+});
+if(LOCKED){
+ const dlg=$('#dlg');
+ $('#adm').onclick=async()=>{if(ADMIN){await api('/api/admin/logout',{});location.reload()}else dlg.showModal()};
+ $('#dologin').onclick=async()=>{const d=await api('/api/admin/login',{password:$('#pw').value});if(d.success)location.reload();else $('#lmsg').textContent=d.error};
+ $('#pw').onkeydown=e=>{if(e.key==='Enter')$('#dologin').click()};
+}
+show(location.hash.slice(1));status();
+</script>
+</body>
+</html>
