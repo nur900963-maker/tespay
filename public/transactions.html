@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transaksi - Vincent Pay</title>
+  <link rel="icon" href="/icon.svg">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+<div class="dash-shell" id="shell"></div>
+
+<script src="/js/app.js"></script>
+<script src="/js/dashboard.js"></script>
+<script>
+  bootDashboard('transactions', 'Transaksi', () => {
+    const c = document.getElementById('content');
+    const params = new URLSearchParams(location.search);
+
+    c.innerHTML = `
+      <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin-bottom:1.25rem;">
+        <div>
+          <h1 style="font-size:1.15rem; font-weight:600; color:var(--slate-900);">Riwayat Transaksi</h1>
+          <p style="font-size:12px; color:var(--slate-500); margin-top:.25rem;">Semua transaksi deposit dan penarikan Anda.</p>
+        </div>
+        <a href="/deposit" class="btn-primary" style="font-size:11.5px; padding:.5rem .8rem;">
+          <i class="fas fa-plus" style="font-size:10px;"></i> Invoice Baru
+        </a>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr; gap:.85rem; margin-bottom:1.25rem;" id="sumGrid">
+        <div class="stat-card">
+          <p style="font-size:11px; color:var(--slate-500); font-weight:500;">Total Deposit (lunas)</p>
+          <p style="font-size:1.05rem; font-weight:600; color:var(--slate-900); margin-top:.25rem;" id="sumDeposit">-</p>
+        </div>
+        <div class="stat-card">
+          <p style="font-size:11px; color:var(--slate-500); font-weight:500;">Total Penarikan</p>
+          <p style="font-size:1.05rem; font-weight:600; color:var(--slate-900); margin-top:.25rem;" id="sumWithdraw">-</p>
+        </div>
+        <div class="stat-card">
+          <p style="font-size:11px; color:var(--slate-500); font-weight:500;">Jumlah Transaksi</p>
+          <p style="font-size:1.05rem; font-weight:600; color:var(--slate-900); margin-top:.25rem;" id="sumCount">-</p>
+        </div>
+        <div class="stat-card">
+          <p style="font-size:11px; color:var(--slate-500); font-weight:500;">Saldo Saat Ini</p>
+          <p style="font-size:1.05rem; font-weight:600; color:var(--brand); margin-top:.25rem;" id="sumBalance">-</p>
+        </div>
+      </div>
+
+      <div class="dash-card">
+        <div class="dash-card-header" style="flex-wrap:wrap; gap:.6rem;">
+          <div style="display:flex; align-items:center; gap:.5rem;">
+            <div class="icon-box icon-purple"><i class="fas fa-receipt"></i></div>
+            <span>Daftar Transaksi</span>
+          </div>
+          <div style="display:flex; gap:.45rem; flex-wrap:wrap;">
+            <input id="searchInput" class="form-input" placeholder="Cari ID..." style="width:150px; font-size:11.5px; padding:.4rem .6rem;">
+            <select id="typeFilter" class="form-select" style="width:auto; font-size:11.5px; padding:.4rem .6rem;">
+              <option value="">Semua tipe</option>
+              <option value="deposit">Deposit</option>
+              <option value="withdrawal">Penarikan</option>
+            </select>
+            <select id="statusFilter" class="form-select" style="width:auto; font-size:11.5px; padding:.4rem .6rem;">
+              <option value="">Semua status</option>
+              <option value="paid">Lunas</option>
+              <option value="pending">Menunggu</option>
+              <option value="success">Berhasil</option>
+              <option value="expired">Kedaluwarsa</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-responsive" id="tableWrap">
+          <div style="padding:2rem; text-align:center; color:var(--slate-400); font-size:12px;">
+            <i class="fas fa-spinner fa-spin"></i> Memuat transaksi...</div>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:.5rem; padding:.75rem 1.1rem; border-top:1px solid var(--slate-100);">
+          <p id="pageInfo" style="font-size:11.5px; color:var(--slate-500);">-</p>
+          <div style="display:flex; gap:.4rem;">
+            <button id="prevBtn" class="btn-secondary" style="font-size:11.5px; padding:.35rem .65rem;">Sebelumnya</button>
+            <button id="nextBtn" class="btn-secondary" style="font-size:11.5px; padding:.35rem .65rem;">Berikutnya</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal detail -->
+      <div id="modal" class="hidden" style="position:fixed; inset:0; background:rgba(15,23,42,.45); z-index:60; display:flex; align-items:center; justify-content:center; padding:1.25rem;">
+        <div style="background:#fff; border-radius:14px; max-width:26rem; width:100%; max-height:88vh; overflow-y:auto; box-shadow:0 24px 60px -24px rgba(15,23,42,.6);">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:.9rem 1.1rem; border-bottom:1px solid var(--slate-100);">
+            <span style="font-size:13px; font-weight:500; color:var(--slate-800);">Detail Transaksi</span>
+            <button onclick="document.getElementById('modal').classList.add('hidden')" style="background:none; border:0; cursor:pointer; color:var(--slate-400); font-size:14px;">
+              <i class="fas fa-xmark"></i>
+            </button>
+          </div>
+          <div id="modalBody" style="padding:1.1rem;"></div>
+        </div>
+      </div>
+    `;
+
+    const layout = () => {
+      document.getElementById('sumGrid').style.gridTemplateColumns = window.innerWidth >= 900 ? 'repeat(4,1fr)' : 'repeat(2,1fr)';
+    };
+    layout();
+    window.addEventListener('resize', layout);
+
+    let page = 1;
+    let pages = 1;
+    const state = { q: '', type: params.get('type') || '', status: '' };
+    if (state.type) document.getElementById('typeFilter').value = state.type;
+
+    async function load() {
+      const qs = new URLSearchParams({ page, limit: 8 });
+      if (state.type) qs.set('type', state.type);
+      if (state.status) qs.set('status', state.status);
+      if (state.q) qs.set('q', state.q);
+
+      const wrap = document.getElementById('tableWrap');
+      wrap.innerHTML = '<div style="padding:2rem; text-align:center; color:var(--slate-400); font-size:12px;"><i class="fas fa-spinner fa-spin"></i> Memuat...</div>';
+
+      try {
+        const d = await api('/api/transactions?' + qs.toString());
+        pages = d.pagination.pages;
+        document.getElementById('sumDeposit').textContent = rupiah(d.summary.deposit_total);
+        document.getElementById('sumWithdraw').textContent = rupiah(d.summary.withdraw_total);
+        document.getElementById('sumCount').textContent = d.pagination.total;
+        document.getElementById('sumBalance').textContent = rupiah(d.summary.balance);
+        document.getElementById('pageInfo').textContent = `Halaman ${d.pagination.page} dari ${pages} · ${d.pagination.total} transaksi`;
+        document.getElementById('prevBtn').disabled = page <= 1;
+        document.getElementById('nextBtn').disabled = page >= pages;
+
+        if (!d.data.length) {
+          wrap.innerHTML = '<div style="padding:2.5rem; text-align:center; color:var(--slate-400); font-size:12px;">Tidak ada transaksi yang cocok.</div>';
+          return;
+        }
+
+        wrap.innerHTML = `<table class="data-table">
+          <thead><tr><th>ID</th><th>Tipe</th><th>Nominal</th><th>Admin</th><th>Total</th><th>Status</th><th>Waktu</th><th></th></tr></thead>
+          <tbody>${d.data.map(t => `<tr>
+            <td style="font-family:ui-monospace,monospace; font-size:11px;">${t.id}</td>
+            <td>${typeBadge(t.type)}</td>
+            <td style="font-weight:500; color:var(--slate-900);">${rupiah(t.amount)}</td>
+            <td style="color:var(--slate-500);">${rupiah(t.fee)}</td>
+            <td style="color:var(--slate-700);">${rupiah(t.total)}</td>
+            <td>${statusBadge(t.status)}</td>
+            <td style="font-size:11.5px; color:var(--slate-500); white-space:nowrap;">${fmtDate(t.created_at)}</td>
+            <td style="text-align:right;">
+              <button class="btn-secondary" style="font-size:10.5px; padding:.25rem .5rem;" data-id="${t.id}">Detail</button>
+            </td>
+          </tr>`).join('')}</tbody></table>`;
+
+        wrap.querySelectorAll('[data-id]').forEach(b =>
+          b.addEventListener('click', () => openDetail(b.dataset.id)));
+
+        if (params.get('open')) {
+          openDetail(params.get('open'));
+          params.delete('open');
+        }
+      } catch (e) {
+        wrap.innerHTML = `<div class="alert alert-error" style="margin:1rem;">${e.message}</div>`;
+      }
+    }
+
+    async function openDetail(id) {
+      const modal = document.getElementById('modal');
+      const body = document.getElementById('modalBody');
+      body.innerHTML = '<div style="text-align:center; padding:1.5rem; color:var(--slate-400);"><i class="fas fa-spinner fa-spin"></i></div>';
+      modal.classList.remove('hidden');
+
+      try {
+        const d = await api('/api/transactions/' + id);
+        const t = d.transaction;
+        body.innerHTML = `
+          <div style="text-align:center; margin-bottom:1rem;">
+            <p style="font-size:11px; color:var(--slate-500);">Total</p>
+            <p style="font-size:1.4rem; font-weight:600; color:var(--slate-900);">${rupiah(t.total)}</p>
+            <div style="margin-top:.4rem;">${statusBadge(t.status)} ${typeBadge(t.type)}</div>
+          </div>
+          ${t.qris_image && t.status === 'pending' ? `<div style="max-width:180px; margin:0 auto 1rem;"><div class="pay-qris"><img src="${t.qris_image}" alt="QRIS"></div></div>` : ''}
+          <div style="display:flex; flex-direction:column; gap:.55rem; font-size:12px;">
+            ${row('ID', `<span style="font-family:ui-monospace,monospace;">${t.id}</span>`)}
+            ${row('Nominal', rupiah(t.amount))}
+            ${row('Biaya admin', rupiah(t.fee))}
+            ${row('Total', rupiah(t.total))}
+            ${t.channel ? row('Channel', t.channel) : ''}
+            ${t.account_number ? row('Nomor tujuan', t.account_number) : ''}
+            ${t.account_name ? row('Nama', t.account_name) : ''}
+            ${row('Dibuat', fmtDate(t.created_at))}
+            ${t.expired_at ? row('Kedaluwarsa', fmtDate(t.expired_at)) : ''}
+            ${t.completed_at ? row('Selesai', fmtDate(t.completed_at)) : ''}
+          </div>
+          ${t.payment_link ? `<a href="${t.payment_link}" target="_blank" class="btn-secondary" style="width:100%; margin-top:.5rem; font-size:12px;">Buka Halaman Bayar</a>` : ''}
+        `;
+      } catch (e) {
+        body.innerHTML = `<div class="alert alert-error">${e.message}</div>`;
+      }
+    }
+
+    function row(label, value) {
+      return `<div style="display:flex; justify-content:space-between; gap:.75rem;">
+        <span style="color:var(--slate-500);">${label}</span>
+        <span style="color:var(--slate-800); text-align:right;">${value}</span>
+      </div>`;
+    }
+
+    document.getElementById('prevBtn').addEventListener('click', () => { if (page > 1) { page--; load(); } });
+    document.getElementById('nextBtn').addEventListener('click', () => { if (page < pages) { page++; load(); } });
+
+    let tmr;
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      clearTimeout(tmr);
+      tmr = setTimeout(() => { state.q = e.target.value.trim(); page = 1; load(); }, 350);
+    });
+    document.getElementById('typeFilter').addEventListener('change', (e) => { state.type = e.target.value; page = 1; load(); });
+    document.getElementById('statusFilter').addEventListener('change', (e) => { state.status = e.target.value; page = 1; load(); });
+
+    load();
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vincent Pay - Layanan Link Pembayaran QRIS</title>
+  <meta name="description" content="Bangun tautan pembayaran QRIS dinamis dengan akun merchant yang telah memiliki akses API resmi. Status pembayaran diverifikasi ke penyedia pembayaran.">
+  <meta name="theme-color" content="#9333ea">
+  <link rel="icon" href="/icon.svg">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body class="min-h-screen flex flex-col">
+
+<div class="bg-decor">
+  <div class="bg-blob bg-blob-1"></div>
+  <div class="bg-blob bg-blob-2"></div>
+  <div class="bg-blob bg-blob-3"></div>
+</div>
+<div class="grid-pattern"></div>
+
+<header id="nav"></header>
+
+<main class="relative" style="z-index:1; max-width: 72rem; margin: 0 auto; padding: 0 1.25rem;">
+  <div style="max-width: 48rem; margin: 0 auto;">
+
+    <!-- ================= HERO ================= -->
+    <section class="hero-section anim-fade-up" style="padding-bottom: 1.5rem;">
+      <div style="display:flex; flex-direction:column; align-items:center; text-align:center; margin-top:1.5rem;">
+        <div class="badge-pill anim-fade-in delay-2" style="margin-bottom:1.5rem;">
+          <span class="badge-dot"></span>
+          <span>QRIS dinamis melalui akun merchant resmi</span>
+        </div>
+
+        <h1 class="hero-title anim-fade-up delay-3">
+          Layanan Link Pembayaran <span class="accent">QRIS</span>
+        </h1>
+
+        <p class="anim-fade-up delay-4" style="font-size:13px; color:var(--slate-600); max-width:36rem; margin:1rem auto 0; line-height:1.7;">
+          Bangun tautan pembayaran QRIS dinamis dengan akun merchant yang telah memiliki akses API resmi. Status pembayaran diverifikasi ke penyedia pembayaran, bukan melalui simulasi.
+        </p>
+
+        <div class="anim-fade-up delay-5" style="display:flex; flex-direction:column; gap:.75rem; margin-top:3.5rem; width:100%; max-width:420px;">
+          <a href="/register" class="btn-primary anim-pulse-glow" style="padding:.85rem 1.1rem; flex:1;">
+            <i class="fas fa-rocket" style="font-size:12px;"></i>
+            Mulai Sekarang
+            <i class="fas fa-arrow-right" style="font-size:11px;"></i>
+          </a>
+          <a href="/docs" class="btn-secondary" style="padding:.85rem 1.1rem; flex:1;">
+            <i class="fas fa-book-open" style="font-size:12px;"></i>
+            Panduan API
+          </a>
+        </div>
+
+        <div class="anim-fade-up delay-6" style="display:grid; grid-template-columns:repeat(3,1fr); gap:.75rem; margin-top:2.5rem; width:100%; max-width:28rem;">
+          <div style="text-align:center;">
+            <p style="font-size:17px; font-weight:500; color:var(--slate-900);" data-stat="users">0</p>
+            <p style="font-size:10.5px; color:var(--slate-500); margin-top:.1rem;">Pengguna</p>
+          </div>
+          <div style="text-align:center; border-left:1px solid var(--slate-200); border-right:1px solid var(--slate-200);">
+            <p style="font-size:17px; font-weight:500; color:var(--slate-900);" data-stat="transactions">0</p>
+            <p style="font-size:10.5px; color:var(--slate-500); margin-top:.1rem;">Transaksi</p>
+          </div>
+          <div style="text-align:center;">
+            <p style="font-size:17px; font-weight:500; color:var(--slate-900);">Sesuai merchant</p>
+            <p style="font-size:10.5px; color:var(--slate-500); margin-top:.1rem;">Settlement</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TRUST STRIP ================= -->
+    <section class="reveal" style="margin-bottom:2rem;">
+      <div class="trust-strip">
+        <div class="trust-strip-inner" id="trustStrip">
+          <div class="trust-badge"><i class="fas fa-shield-halved"></i> Aman &amp; Terenkripsi</div>
+          <div class="trust-badge"><i class="fas fa-bolt"></i> Proses Otomatis</div>
+          <div class="trust-badge"><i class="fas fa-clock"></i> Log transaksi dan webhook</div>
+          <div class="trust-badge"><i class="fas fa-circle-check"></i> Open API</div>
+          <div class="trust-badge"><i class="fas fa-wifi"></i> Real-time Mutasi</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= FITUR ================= -->
+    <section style="margin-bottom:2.5rem;">
+      <div style="text-align:center; margin-bottom:1.5rem;" class="reveal">
+        <h2 class="section-title" style="margin-top:.75rem;">Mengapa Pakai Vincent Pay?</h2>
+        <p class="section-desc" style="margin-top:.5rem;">Fitur yang dirancang untuk memudahkan bisnis digital Anda.</p>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr; gap:.85rem;" id="featureGrid">
+        <div class="feature-card reveal delay-1">
+          <div class="feature-icon icon-purple"><i class="fas fa-user-plus"></i></div>
+          <h3 style="font-size:13.5px; font-weight:500; color:var(--slate-900); margin-bottom:.35rem;">Pendaftaran Instan</h3>
+          <p style="font-size:12px; color:var(--slate-600); line-height:1.65;">Transaksi live memerlukan konfigurasi API merchant dan persetujuan provider.</p>
+        </div>
+        <div class="feature-card reveal delay-2">
+          <div class="feature-icon icon-violet"><i class="fas fa-plug"></i></div>
+          <h3 style="font-size:13.5px; font-weight:500; color:var(--slate-900); margin-bottom:.35rem;">Integrasi Mudah</h3>
+          <p style="font-size:12px; color:var(--slate-600); line-height:1.65;">Dokumentasi lengkap dan jelas, mudah dipahami bahkan untuk pemula.</p>
+        </div>
+        <div class="feature-card reveal delay-3">
+          <div class="feature-icon icon-indigo"><i class="fas fa-piggy-bank"></i></div>
+          <h3 style="font-size:13.5px; font-weight:500; color:var(--slate-900); margin-bottom:.35rem;">Biaya Rendah</h3>
+          <p style="font-size:12px; color:var(--slate-600); line-height:1.65;">Biaya transparan dan rendah untuk memaksimalkan keuntungan bisnis Anda.</p>
+        </div>
+        <div class="feature-card reveal delay-4">
+          <div class="feature-icon icon-fuchsia"><i class="fas fa-bolt"></i></div>
+          <h3 style="font-size:13.5px; font-weight:500; color:var(--slate-900); margin-bottom:.35rem;">Penarikan Instan</h3>
+          <p style="font-size:12px; color:var(--slate-600); line-height:1.65;">Permintaan penarikan masuk antrean review owner dan belum dikirim otomatis.</p>
+        </div>
+        <div class="feature-card reveal delay-5">
+          <div class="feature-icon icon-pink"><i class="fas fa-calendar-check"></i></div>
+          <h3 style="font-size:13.5px; font-weight:500; color:var(--slate-900); margin-bottom:.35rem;">Settlement Cepat</h3>
+          <p style="font-size:12px; color:var(--slate-600); line-height:1.65;">Pembayaran ditandai berhasil setelah status dikonfirmasi melalui API merchant. Penarikan diproses sesuai antrean owner.</p>
+        </div>
+        <div class="feature-card reveal delay-6">
+          <div class="feature-icon icon-green"><i class="fas fa-headset"></i></div>
+          <h3 style="font-size:13.5px; font-weight:500; color:var(--slate-900); margin-bottom:.35rem;">Support Responsif</h3>
+          <p style="font-size:12px; color:var(--slate-600); line-height:1.65;">Dokumentasi API membantu integrasi; transaksi live bergantung pada kontrak dan akses API merchant Anda.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= STATISTIK ================= -->
+    <section style="margin-bottom:2.5rem;">
+      <div style="text-align:center; margin-bottom:1.5rem;" class="reveal">
+        <h2 class="section-title" style="margin-top:.75rem;">Statistik Vincent Pay</h2>
+        <p class="section-desc" style="margin-top:.5rem;">Angka aktual dari database; bukan angka contoh.</p>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr; gap:.85rem;" id="statGrid">
+        <div class="stat-card reveal delay-1">
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:.5rem;">
+            <div class="icon-box icon-purple"><i class="fas fa-users"></i></div>
+          </div>
+          <p style="font-size:13px; color:var(--slate-500); font-weight:500; margin-bottom:.25rem;">Total Pengguna</p>
+          <p class="stat-value" data-stat="users">0</p>
+        </div>
+        <div class="stat-card reveal delay-2">
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:.5rem;">
+            <div class="icon-box icon-fuchsia"><i class="fas fa-chart-line"></i></div>
+          </div>
+          <p style="font-size:13px; color:var(--slate-500); font-weight:500; margin-bottom:.25rem;">Volume Transaksi</p>
+          <p class="stat-value" data-stat="volume">Rp 0</p>
+        </div>
+        <div class="stat-card reveal delay-3">
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:.5rem;">
+            <div class="icon-box icon-violet"><i class="fas fa-receipt"></i></div>
+          </div>
+          <p style="font-size:13px; color:var(--slate-500); font-weight:500; margin-bottom:.25rem;">Total Transaksi</p>
+          <p class="stat-value" data-stat="transactions">0</p>
+        </div>
+        <div class="stat-card reveal delay-4">
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:.5rem;">
+            <div class="icon-box icon-indigo"><i class="fas fa-money-bill-transfer"></i></div>
+          </div>
+          <p style="font-size:13px; color:var(--slate-500); font-weight:500; margin-bottom:.25rem;">Volume Penarikan</p>
+          <p class="stat-value" data-stat="withdrawal">Rp 0</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= F.A.Q ================= -->
+    <section style="margin-bottom:2.5rem;">
+      <div style="text-align:center; margin-bottom:1.25rem;" class="reveal">
+        <h2 class="section-title" style="margin-top:.75rem;">Pertanyaan Umum (F.A.Q)</h2>
+        <p class="section-desc" style="margin-top:.5rem;">Hal-hal yang sering ditanyakan pengguna.</p>
+      </div>
+
+      <div class="dash-card reveal" style="padding: .35rem 1.15rem;">
+        <div class="faq-item">
+          <button class="faq-q">Apa itu Vincent Pay?<i class="fas fa-chevron-down"></i></button>
+          <div class="faq-a">Vincent Pay menyediakan dashboard, invoice, dan API pembayaran. Pembuatan QRIS baru aktif setelah owner mengonfigurasi API merchant resmi yang didukung.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">Apakah Vincent Pay itu Payment Gateway?<i class="fas fa-chevron-down"></i></button>
+          <div class="faq-a">Vincent Pay adalah platform yang sedang disiapkan dengan adapter API langsung ke akun merchant DANA, ShopeePay, dan GoBiz/GoPay. Vincent Pay bukan pihak yang mengotorisasi diri sebagai PJP; sebelum dipakai komersial, owner harus memastikan legalitas, kontrak, izin produk, dan alur dana yang berlaku.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">Apakah ada biaya pendaftaran atau berlangganan?<i class="fas fa-chevron-down"></i></button>
+          <div class="faq-a">Tidak ada. Biaya hanya ada saat melakukan transaksi saja.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">Apakah Vincent Pay aman?<i class="fas fa-chevron-down"></i></button>
+          <div class="faq-a">Operator harus memastikan status legalitas, perizinan, kontrak merchant, dan pengelolaan dana sebelum layanan komersial dijalankan. Template ini tidak menyatakan Vincent Pay berizin sebagai PJP.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">Apakah setelah transaksi berhasil bisa langsung dicairkan?<i class="fas fa-chevron-down"></i></button>
+          <div class="faq-a">Settlement mengikuti ketentuan akun merchant penyedia pembayaran. Saldo internal Vincent Pay hanya bertambah setelah status pembayaran diverifikasi.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">Berapa biaya transaksi dan penarikan?<i class="fas fa-chevron-down"></i></button>
+          <div class="faq-a">Biaya transaksi dan penarikan dapat dilihat pada halaman <a href="/pricing" class="link-brand">Biaya Transaksi</a>.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">Berapa lama proses pencairan?<i class="fas fa-chevron-down"></i></button>
+          <div class="faq-a">Permintaan penarikan ditinjau owner. Pembayaran ke tujuan dilakukan manual dan baru dapat ditandai berhasil setelah transfer selesai.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= CTA ================= -->
+    <section class="reveal" style="margin-bottom:3rem;">
+      <div style="background:linear-gradient(135deg,#7e22ce,#9333ea 55%,#a855f7); border-radius:18px; padding:2rem 1.5rem; text-align:center; color:#fff; box-shadow:0 24px 50px -28px rgba(126,34,206,.9);">
+        <h2 style="font-size:1.3rem; font-weight:600; letter-spacing:-.02em;">Siap Memulai?</h2>
+        <p style="font-size:12.5px; opacity:.88; margin-top:.6rem; max-width:32rem; margin-left:auto; margin-right:auto; line-height:1.7;">
+          Konfigurasikan credential merchant resmi sebelum menggunakan mode produksi.
+        </p>
+        <div style="display:flex; gap:.75rem; justify-content:center; margin-top:1.35rem; flex-wrap:wrap;">
+          <a href="/register" style="background:#fff; color:#7e22ce; border-radius:10px; padding:.7rem 1.2rem; font-size:12.5px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:.45rem;">
+            <i class="fas fa-user-plus" style="font-size:11px;"></i> Daftar Gratis
+          </a>
+          <a href="/pricing" style="background:rgba(255,255,255,.14); color:#fff; border:1px solid rgba(255,255,255,.28); border-radius:10px; padding:.7rem 1.2rem; font-size:12.5px; font-weight:500; text-decoration:none;">
+            Lihat Biaya
+          </a>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer style="border-top:1px solid var(--slate-200); background:rgba(255,255,255,.7); position:relative; z-index:1;">
+  <div style="max-width:72rem; margin:0 auto; padding:1.75rem 1.25rem;">
+    <div style="display:flex; flex-wrap:wrap; gap:1.5rem; justify-content:space-between; align-items:flex-start;">
+      <div style="max-width:20rem;">
+        <div class="nav-logo" style="margin-bottom:.6rem;">
+          <img src="/icon.svg" alt="Vincent Pay"><span>Vincent Pay</span>
+        </div>
+        <p style="font-size:11.5px; color:var(--slate-500); line-height:1.7;">
+          Dashboard dan API untuk invoice QRIS dinamis yang dibuat melalui akun merchant resmi yang telah dikonfigurasi.
+        </p>
+      </div>
+      <div style="display:flex; gap:3rem; flex-wrap:wrap;">
+        <div>
+          <p style="font-size:11px; font-weight:600; color:var(--slate-800); margin-bottom:.6rem; text-transform:uppercase; letter-spacing:.05em;">Produk</p>
+          <div style="display:flex; flex-direction:column; gap:.4rem;">
+            <a href="/pricing" style="font-size:11.5px; color:var(--slate-500); text-decoration:none;">Biaya Transaksi</a>
+            <a href="/docs" style="font-size:11.5px; color:var(--slate-500); text-decoration:none;">Dokumentasi API</a>
+            <a href="/dashboard" style="font-size:11.5px; color:var(--slate-500); text-decoration:none;">Dashboard</a>
+          </div>
+        </div>
+        <div>
+          <p style="font-size:11px; font-weight:600; color:var(--slate-800); margin-bottom:.6rem; text-transform:uppercase; letter-spacing:.05em;">Akun</p>
+          <div style="display:flex; flex-direction:column; gap:.4rem;">
+            <a href="/register" style="font-size:11.5px; color:var(--slate-500); text-decoration:none;">Daftar</a>
+            <a href="/login" style="font-size:11.5px; color:var(--slate-500); text-decoration:none;">Login</a>
+            <a href="/docs" style="font-size:11.5px; color:var(--slate-500); text-decoration:none;">Dokumentasi & API</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="border-top:1px solid var(--slate-100); margin-top:1.5rem; padding-top:1rem; display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+      <p style="font-size:11px; color:var(--slate-400);">&copy; 2026 Vincent Pay. Seluruh hak cipta dilindungi.</p>
+      <p style="font-size:11px; color:var(--slate-400);">Settlement sesuai akun merchant &middot; Log transaksi dan webhook</p>
+    </div>
+  </div>
+</footer>
+
+<script src="/js/app.js"></script>
+<script>
+  renderNav('home');
+
+  // responsive grids (tanpa framework)
+  function applyGrids() {
+    const w = window.innerWidth;
+    document.getElementById('featureGrid').style.gridTemplateColumns = w >= 1024 ? 'repeat(3,1fr)' : w >= 640 ? 'repeat(2,1fr)' : '1fr';
+    document.getElementById('statGrid').style.gridTemplateColumns = w >= 900 ? 'repeat(4,1fr)' : w >= 640 ? 'repeat(2,1fr)' : '1fr';
+    const heroBtns = document.querySelector('.anim-fade-up.delay-5');
+    if (heroBtns) heroBtns.style.flexDirection = w >= 640 ? 'row' : 'column';
+  }
+  applyGrids();
+  window.addEventListener('resize', applyGrids);
+
+  // duplikasi trust strip untuk marquee mulus
+  const strip = document.getElementById('trustStrip');
+  strip.innerHTML += strip.innerHTML;
+
+  // statistik live dari API
+  fetch('/api/stats').then(r => r.json()).then(d => {
+    document.querySelectorAll('[data-stat="users"]').forEach(e => e.textContent = d.users + '+');
+    document.querySelectorAll('[data-stat="transactions"]').forEach(e => e.textContent = Number(d.transactions).toLocaleString('id-ID'));
+    document.querySelectorAll('[data-stat="volume"]').forEach(e => e.textContent = rupiah(d.volume));
+    document.querySelectorAll('[data-stat="withdrawal"]').forEach(e => e.textContent = rupiah(d.withdrawal_volume));
+  }).catch(() => {});
+</script>
+</body>
+</html>

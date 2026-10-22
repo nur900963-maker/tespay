@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pembayaran QRIS - Vincent Pay</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/icon.svg">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+<div class="bg-decor"><div class="bg-blob bg-blob-1"></div><div class="bg-blob bg-blob-2"></div></div>
+<div class="grid-pattern"></div>
+
+<div style="position:relative; z-index:1; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:2.5rem 1.25rem;">
+
+  <div style="display:flex; align-items:center; gap:.5rem; margin-bottom:1.25rem;">
+    <img src="/icon.svg" alt="Vincent Pay" style="height:28px; width:28px; border-radius:7px;">
+    <span style="font-size:14px; font-weight:600; color:var(--slate-900);">Vincent Pay</span>
+  </div>
+
+  <div id="card" class="dash-card anim-fade-up" style="width:100%; max-width:24rem;">
+    <div id="loading" style="padding:3rem 1.5rem; text-align:center; color:var(--slate-400); font-size:12.5px;">
+      <i class="fas fa-spinner fa-spin"></i> Memuat invoice...
+    </div>
+    <div id="errorBox" class="hidden" style="padding:2rem 1.5rem; text-align:center;">
+      <div style="width:44px; height:44px; border-radius:50%; background:#fef2f2; color:#dc2626; display:flex; align-items:center; justify-content:center; margin:0 auto .8rem;">
+        <i class="fas fa-triangle-exclamation"></i>
+      </div>
+      <p style="font-size:13px; font-weight:500; color:var(--slate-800);">Invoice tidak ditemukan</p>
+      <p id="errMsg" style="font-size:11.5px; color:var(--slate-500); margin-top:.35rem;"></p>
+      <a href="/" class="btn-secondary" style="margin-top:1rem; font-size:12px;">Ke Beranda</a>
+    </div>
+    <div id="content" class="hidden"></div>
+  </div>
+
+  <p style="font-size:10.5px; color:var(--slate-400); margin-top:1.25rem; text-align:center;">
+    Pembayaran diproses secara aman &middot; Status pembayaran diverifikasi dari penyedia merchant
+  </p>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  const id = new URLSearchParams(location.search).get('id');
+  const loading = document.getElementById('loading');
+  const errorBox = document.getElementById('errorBox');
+  const content = document.getElementById('content');
+
+  function fail(msg) {
+    loading.classList.add('hidden');
+    document.getElementById('errMsg').textContent = msg || '';
+    errorBox.classList.remove('hidden');
+  }
+
+  if (!id) fail('Parameter id tidak ditemukan pada URL.');
+
+  async function load() {
+    try {
+      const res = await fetch('/api/invoice/' + encodeURIComponent(id));
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.message || 'Invoice tidak ditemukan.');
+
+      const t = d.invoice;
+      loading.classList.add('hidden');
+      content.classList.remove('hidden');
+
+      const paid = t.status === 'paid';
+      const expired = t.status === 'expired' || new Date(t.expired_at) < new Date();
+
+      content.innerHTML = `
+        <div style="padding:1.35rem 1.35rem .9rem; text-align:center; border-bottom:1px solid var(--slate-100);">
+          <p style="font-size:11px; color:var(--slate-500);">Total Pembayaran</p>
+          <p style="font-size:1.7rem; font-weight:600; color:var(--slate-900); letter-spacing:-.02em; margin-top:.15rem;">${rupiah(t.total)}</p>
+          <div style="margin-top:.45rem;">
+            ${paid ? '<span class="badge badge-paid"><i class="fas fa-check" style="font-size:9px;"></i> Lunas</span>'
+              : expired ? '<span class="badge badge-expired">Kedaluwarsa</span>'
+              : '<span class="badge badge-pending"><i class="fas fa-clock" style="font-size:9px;"></i> Menunggu Pembayaran</span>'}
+          </div>
+        </div>
+
+        <div style="padding:1.15rem 1.35rem;">
+          ${paid ? `
+            <div style="text-align:center; padding:.5rem 0 1rem;">
+              <div style="width:52px; height:52px; border-radius:50%; background:#f0fdf4; color:#16a34a; display:flex; align-items:center; justify-content:center; margin:0 auto .7rem; font-size:22px;">
+                <i class="fas fa-circle-check"></i>
+              </div>
+              <p style="font-size:12.5px; color:var(--slate-600); line-height:1.7;">
+                Pembayaran berhasil diterima.<br>Terima kasih!
+              </p>
+            </div>` : expired ? `
+            <div style="text-align:center; padding:.5rem 0 1rem;">
+              <p style="font-size:12.5px; color:var(--slate-600);">Invoice ini sudah kedaluwarsa. Silakan buat invoice baru.</p>
+            </div>` : `
+            <div style="max-width:220px; margin:0 auto;">
+              <div class="pay-qris"><img src="${t.qris_image}" alt="QRIS"></div>
+            </div>
+            <p style="text-align:center; font-size:11px; color:var(--slate-500); margin-top:.7rem;">
+              Scan QRIS di atas dengan aplikasi bank atau e-wallet apa pun.
+            </p>
+            <div style="display:flex; gap:.4rem; justify-content:center; flex-wrap:wrap; margin-top:.6rem;">
+              ${['GoPay','DANA','ShopeePay','Bank berlogo QRIS'].map(n =>
+                `<span style="font-size:9.5px; color:var(--slate-500); border:1px solid var(--slate-200); border-radius:5px; padding:.15rem .4rem;">${n}</span>`).join('')}
+            </div>`}
+
+          <div style="border-top:1px dashed var(--slate-200); margin:1rem 0;"></div>
+
+          <div style="display:flex; flex-direction:column; gap:.5rem; font-size:12px;">
+            <div style="display:flex; justify-content:space-between;"><span style="color:var(--slate-500);">Nominal</span><span>${rupiah(t.amount)}</span></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:var(--slate-500);">Biaya admin</span><span>${rupiah(t.fee)}</span></div>
+            <div style="display:flex; justify-content:space-between; font-weight:600; color:var(--slate-900);"><span>Total</span><span>${rupiah(t.total)}</span></div>
+            <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--slate-400);"><span>Invoice ID</span><span style="font-family:ui-monospace,monospace;">${t.id}</span></div>
+            <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--slate-400);"><span>Berlaku sampai</span><span>${fmtDate(t.expired_at)}</span></div>
+          </div>
+
+          ${!paid && !expired ? `
+            <button id="refreshBtn" class="btn-secondary" style="width:100%; margin-top:1rem; font-size:12.5px;">
+              <i class="fas fa-rotate" style="font-size:11px;"></i> Periksa Status Pembayaran
+            </button>
+            <p style="font-size:10.5px; color:var(--slate-400); margin-top:.5rem; text-align:center;">
+              Status diperbarui dari API merchant, bukan dari konfirmasi manual pelanggan.
+            </p>` : ''}
+        </div>
+      `;
+      document.getElementById('refreshBtn')?.addEventListener('click', () => load());
+    } catch (e) {
+      fail(e.message);
+    }
+  }
+
+  if (id) { load(); setInterval(() => { if (!document.hidden) load(); }, 15000); }
+</script>
+</body>
+</html>

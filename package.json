@@ -1,0 +1,34 @@
+{
+  "name": "vincent-pay",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vincent Pay serverless Vercel package; requires persistent PostgreSQL and direct merchant API credentials",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "check": "node --check server.js && node --check db.js && node --check routes/auth.js && node --check routes/admin.js && node --check routes/transactions.js && node --check routes/provider-webhooks.js && node --check utils/providers.js && node --check utils/secrets.js"
+  },
+  "keywords": [
+    "qris",
+    "payment-gateway",
+    "invoice",
+    "express",
+    "postgresql",
+    "sqlite"
+  ],
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.1",
+    "qrcode": "^1.5.4",
+    "nodemailer": "^6.9.16"
+  }
+}

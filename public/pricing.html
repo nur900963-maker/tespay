@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Biaya Deposit &amp; Penarikan - Vincent Pay</title>
+  <meta name="description" content="Rincian biaya admin untuk setiap transaksi deposit QRIS &amp; penarikan.">
+  <meta name="theme-color" content="#9333ea">
+  <link rel="icon" href="/icon.svg">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+<div class="bg-decor"><div class="bg-blob bg-blob-1"></div><div class="bg-blob bg-blob-2"></div></div>
+<div class="grid-pattern"></div>
+
+<header id="nav"></header>
+
+<main style="position:relative; z-index:1; max-width:72rem; margin:0 auto; padding:0 1.25rem;">
+  <div style="max-width:48rem; margin:0 auto; padding-bottom:2rem; padding-top:.5rem;">
+
+    <div style="margin-bottom:1.25rem;" class="anim-fade-up">
+      <h1 class="page-title">Biaya Deposit &amp; Penarikan</h1>
+      <p class="page-subtitle">Rincian biaya admin untuk setiap transaksi deposit QRIS &amp; penarikan</p>
+    </div>
+
+    <!-- BIAYA DEPOSIT -->
+    <div class="dash-card anim-fade-up delay-1" style="margin-bottom:1.25rem;">
+      <div class="dash-card-header">
+        <div style="display:flex; align-items:center; gap:.5rem;">
+          <div class="icon-box icon-purple"><i class="fas fa-arrow-down"></i></div>
+          <span>Biaya Deposit</span>
+        </div>
+        <span style="font-size:11px; color:var(--slate-400); font-weight:400;">QRIS</span>
+      </div>
+      <div class="table-responsive">
+        <table class="price-table">
+          <thead>
+            <tr><th>Nominal</th><th>Biaya Admin</th></tr>
+          </thead>
+          <tbody id="depositRows"><tr><td colspan="2">Memuat tarif saat ini…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- BIAYA PENARIKAN -->
+    <div class="dash-card anim-fade-up delay-2" style="margin-bottom:1.25rem;">
+      <div class="dash-card-header">
+        <div style="display:flex; align-items:center; gap:.5rem;">
+          <div class="icon-box icon-fuchsia"><i class="fas fa-arrow-up"></i></div>
+          <span>Biaya Penarikan</span>
+        </div>
+        <span style="font-size:11px; color:var(--slate-400); font-weight:400;">E-Wallet</span>
+      </div>
+      <div class="table-responsive">
+        <table class="price-table">
+          <thead>
+            <tr><th>E-Wallet / Bank</th><th>Biaya Admin</th><th>Nominal</th></tr>
+          </thead>
+          <tbody id="withdrawRows"><tr><td colspan="3">Memuat tarif saat ini…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CATATAN -->
+    <div class="info-box anim-fade-up delay-3">
+      <div class="info-box-title">Catatan Penting:</div>
+      <ul class="info-list">
+        <li><i class="fas fa-circle-check"></i><span><strong>Deposit:</strong> Fee tetap dan persentase mengikuti pengaturan owner. Total tagihan = nominal + fee.</span></li>
+        <li><i class="fas fa-circle-check"></i><span><strong>Penarikan:</strong> Biaya admin bersifat tetap per transaksi, sesuai tabel di atas.</span></li>
+        <li><i class="fas fa-circle-check"></i><span>Biaya dapat berubah sewaktu-waktu tanpa pemberitahuan terlebih dahulu.</span></li>
+      </ul>
+    </div>
+
+    <!-- KALKULATOR -->
+    <div class="dash-card anim-fade-up delay-4" style="margin-top:1.5rem;">
+      <div class="dash-card-header">
+        <div style="display:flex; align-items:center; gap:.5rem;">
+          <div class="icon-box icon-indigo"><i class="fas fa-calculator"></i></div>
+          <span>Simulasi Biaya</span>
+        </div>
+      </div>
+      <div class="dash-card-body">
+        <div style="display:grid; grid-template-columns:1fr; gap:1rem;" id="calcGrid">
+          <div>
+            <label style="display:block; font-size:12.5px; font-weight:500; color:var(--slate-800); margin-bottom:.5rem;">Nominal Deposit</label>
+            <input id="calcAmount" type="number" class="form-input" value="50000" min="1000" max="1500000" step="1000">
+          </div>
+          <div>
+            <label style="display:block; font-size:12.5px; font-weight:500; color:var(--slate-800); margin-bottom:.5rem;">Channel Penarikan</label>
+            <select id="calcChannel" class="form-select">
+              <option value="DANA">DANA</option>
+              <option value="GOPAY">GoPay</option>
+              <option value="SHOPEEPAY">ShopeePay</option>
+              <option value="MANUAL">Manual oleh owner</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr; gap:.55rem; margin-top:1rem;" id="calcResult">
+          <div style="display:flex; justify-content:space-between; font-size:12.5px; color:var(--slate-600);">
+            <span>Total deposit yang harus dibayar</span><strong id="calcTotal" style="color:var(--slate-900);">Rp 50.165</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:12.5px; color:var(--slate-600);">
+            <span>Biaya penarikan channel terpilih</span><strong id="calcWithdraw" style="color:var(--brand-600);">Rp 250</strong>
+          </div>
+        </div>
+
+        <a href="/dashboard" class="btn-primary" style="width:100%; margin-top:1.1rem;">
+          <i class="fas fa-plus" style="font-size:11px;"></i> Buat Invoice Sekarang
+        </a>
+      </div>
+    </div>
+
+    <div style="text-align:center; margin-top:1.75rem;">
+      <a href="/docs" target="_blank" rel="noopener" class="link-brand" style="font-size:12.5px;">
+        <i class="fas fa-headset" style="font-size:11px;"></i> Dokumentasi Vincent Pay
+      </a>
+    </div>
+  </div>
+</main>
+
+<footer style="border-top:1px solid var(--slate-200); margin-top:3rem; position:relative; z-index:1;">
+  <div style="max-width:72rem; margin:0 auto; padding:1.25rem; text-align:center; font-size:11px; color:var(--slate-400);">
+    &copy; 2026 Vincent Pay &middot; <a href="/" style="color:var(--slate-500); text-decoration:none;">Beranda</a> &middot;
+    <a href="/docs" style="color:var(--slate-500); text-decoration:none;">Dokumentasi API</a>
+  </div>
+</footer>
+
+<script src="/js/app.js"></script>
+<script>
+  renderNav('pricing');
+  const amountInput = document.getElementById('calcAmount');
+  const channelInput = document.getElementById('calcChannel');
+  let pricing = null;
+  function feeForDeposit(amount) { return Math.round(Number(pricing?.qris_fee || 0) + amount * Number(pricing?.qris_fee_percent || 0) / 100); }
+  function calc() {
+    const amount = Number(amountInput.value || 0);
+    const min = Number(pricing?.deposit_min || 1000), max = Number(pricing?.deposit_max || 10000000);
+    amountInput.min = min; amountInput.max = max;
+    const fee = feeForDeposit(amount);
+    document.getElementById('calcTotal').textContent = amount >= min && amount <= max ? `${rupiah(amount + fee)} (fee ${rupiah(fee)})` : 'Nominal di luar rentang';
+    const ch = channelInput.value.toLowerCase();
+    const wd = pricing?.withdrawal?.find(x => x.code === channelInput.value);
+    document.getElementById('calcWithdraw').textContent = wd ? rupiah(wd.fee) : rupiah(0);
+  }
+  async function loadPricing() {
+    try {
+      const d = await fetch('/api/pricing').then(r => r.json());
+      pricing = d;
+      amountInput.min = d.deposit_min; amountInput.max = d.deposit_max;
+      document.getElementById('depositRows').innerHTML = `<tr><td class="amount">${rupiah(d.deposit_min)} – ${rupiah(d.deposit_max)}</td><td class="fee">${rupiah(d.qris_fee)}${Number(d.qris_fee_percent) ? ` + ${Number(d.qris_fee_percent)}%` : ''}</td></tr>`;
+      document.getElementById('withdrawRows').innerHTML = (d.withdrawal || []).map(x => `<tr><td class="wallet-name">${x.name}</td><td class="fee">${rupiah(x.fee)}</td><td class="amount">${rupiah(x.min)} – ${rupiah(x.max)}</td></tr>`).join('');
+      channelInput.innerHTML = (d.withdrawal || []).map(x => `<option value="${x.code}">${x.name}</option>`).join('');
+      document.querySelector('.info-list li:nth-child(2) span').textContent = `Penarikan: fee tetap per channel sesuai tabel. Request tetap menunggu review dan transfer owner.`;
+      calc();
+    } catch (_) {
+      document.getElementById('depositRows').innerHTML = '<tr><td colspan="2">Tarif belum dapat dimuat dari server.</td></tr>';
+      document.getElementById('withdrawRows').innerHTML = '<tr><td colspan="3">Tarif belum dapat dimuat dari server.</td></tr>';
+    }
+  }
+  amountInput.addEventListener('input', calc); channelInput.addEventListener('change', calc);
+  function layout() { document.getElementById('calcGrid').style.gridTemplateColumns = window.innerWidth >= 640 ? '1fr 1fr' : '1fr'; }
+  layout(); window.addEventListener('resize', layout); loadPricing();
+</script>
+</body>
+</html>

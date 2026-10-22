@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Penarikan Saldo - Vincent Pay</title>
+  <link rel="icon" href="/icon.svg">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+<div class="dash-shell" id="shell"></div>
+
+<script src="/js/app.js"></script>
+<script src="/js/dashboard.js"></script>
+<script>
+  bootDashboard('withdraw', 'Penarikan Saldo', async () => {
+    const c = document.getElementById('content');
+    const u = Store.user;
+
+    c.innerHTML = `
+      <div style="margin-bottom:1.25rem;">
+        <h1 style="font-size:1.15rem; font-weight:600; color:var(--slate-900);">Tarik Saldo</h1>
+        <p style="font-size:12px; color:var(--slate-500); margin-top:.25rem;">Permintaan masuk antrean owner. Saldo dipotong sementara dan dikembalikan jika ditolak.</p>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr; gap:1.25rem;" id="wdGrid">
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <div style="display:flex; align-items:center; gap:.5rem;">
+              <div class="icon-box icon-fuchsia"><i class="fas fa-arrow-up"></i></div>
+              <span>Form Penarikan</span>
+            </div>
+          </div>
+          <div class="dash-card-body">
+            <div id="alertBox" class="alert alert-error hidden" style="margin-bottom:1rem;">
+              <i class="fas fa-circle-exclamation" style="margin-top:.1rem;"></i><span id="alertText"></span>
+            </div>
+
+            <label style="display:block; font-size:12.5px; font-weight:500; color:var(--slate-800); margin-bottom:.5rem;">Channel Tujuan</label>
+            <select id="channelInput" class="form-select">
+              <option value="DANA">DANA Merchant</option>
+              <option value="GOPAY">GoPay / GoBiz</option>
+              <option value="SHOPEEPAY">ShopeePay Merchant</option>
+              <option value="MANUAL">Manual (transfer oleh owner)</option>
+            </select>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem; margin-top:1rem;">
+              <div>
+                <label style="display:block; font-size:12.5px; font-weight:500; color:var(--slate-800); margin-bottom:.5rem;">Nomor Tujuan</label>
+                <input id="accInput" class="form-input" placeholder="081234567890">
+              </div>
+              <div>
+                <label style="display:block; font-size:12.5px; font-weight:500; color:var(--slate-800); margin-bottom:.5rem;">Nama Pemilik</label>
+                <input id="nameInput" class="form-input" placeholder="Nama sesuai akun">
+              </div>
+            </div>
+
+            <label style="display:block; font-size:12.5px; font-weight:500; color:var(--slate-800); margin:.9rem 0 .5rem;">Nominal Penarikan (Rp)</label>
+            <input id="amountInput" type="number" class="form-input" placeholder="100000" min="1000" step="1000">
+
+            <div style="background:var(--slate-50); border:1px solid var(--slate-200); border-radius:10px; padding:.8rem .9rem; margin-top:1rem;">
+              <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--slate-600); margin-bottom:.4rem;">
+                <span>Nominal</span><span id="sumAmount">Rp 0</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--slate-600); margin-bottom:.4rem;">
+                <span>Biaya admin</span><span id="sumFee">Rp 250</span>
+              </div>
+              <div style="border-top:1px dashed var(--slate-300); margin:.45rem 0;"></div>
+              <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:var(--slate-900);">
+                <span>Total dipotong</span><span id="sumTotal">Rp 0</span>
+              </div>
+            </div>
+
+            <button id="submitBtn" class="btn-submit" style="margin-top:1rem;">
+              <i class="fas fa-paper-plane" style="font-size:11px;"></i> Kirim Penarikan
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <div class="balance-card" style="margin-bottom:1rem;">
+            <p class="balance-label">Saldo Tersedia</p>
+            <p class="balance-value">${rupiah(u.balance)}</p>
+            <p style="font-size:11px; opacity:.8; margin-top:.5rem; position:relative; z-index:1;">Menunggu keputusan withdrawal: ${rupiah(u.pending_balance)}</p>
+          </div>
+
+          <div class="dash-card">
+            <div class="dash-card-header"><span style="font-size:12.5px;">Biaya Penarikan</span></div>
+            <div class="table-responsive">
+              <table class="price-table">
+                <thead><tr><th>Channel</th><th>Admin</th><th>Min</th></tr></thead>
+                <tbody id="wdFeeRows"><tr><td colspan="3">Memuat fee…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-card" style="margin-top:1.25rem;">
+        <div class="dash-card-header">
+          <div style="display:flex; align-items:center; gap:.5rem;">
+            <div class="icon-box icon-indigo"><i class="fas fa-clock-rotate-left"></i></div>
+            <span>Riwayat Penarikan</span>
+          </div>
+          <a href="/transactions?type=withdrawal" style="font-size:11.5px; color:var(--brand); text-decoration:none;">Lihat semua</a>
+        </div>
+        <div class="table-responsive" id="wdHistory">
+          <div style="padding:1.5rem; text-align:center; color:var(--slate-400); font-size:12px;">
+            <i class="fas fa-spinner fa-spin"></i> Memuat...</div>
+        </div>
+      </div>
+    `;
+
+    let fees = { DANA: 250, GOPAY: 250, SHOPEEPAY: 250, MANUAL: 250 };
+    let minAmount = 10000; let maxAmount = 5000000;
+    const channelInput = document.getElementById('channelInput');
+    const amountInput = document.getElementById('amountInput');
+
+    function summary() {
+      const amount = Number(amountInput.value || 0);
+      const fee = fees[channelInput.value] ?? fees.MANUAL;
+      document.getElementById('sumAmount').textContent = rupiah(amount);
+      document.getElementById('sumFee').textContent = rupiah(fee);
+      document.getElementById('sumTotal').textContent = rupiah(amount + fee);
+      amountInput.min = minAmount; amountInput.max = maxAmount;
+    }
+    channelInput.addEventListener('change', summary);
+    amountInput.addEventListener('input', summary);
+    summary();
+    api('/api/pricing', { auth: false }).then(d => {
+      fees = Object.fromEntries((d.withdrawal || []).map(x => [x.code, Number(x.fee)]));
+      minAmount = Number(d.withdrawal_min || 10000); maxAmount = Number(d.withdrawal_max || 5000000);
+      document.getElementById('wdFeeRows').innerHTML = (d.withdrawal || []).map(x => `<tr><td class="wallet-name">${x.name}</td><td class="fee">${rupiah(x.fee)}</td><td>${rupiah(x.min)} – ${rupiah(x.max)}</td></tr>`).join('');
+      summary();
+    }).catch(() => {});
+
+    const layout = () => {
+      document.getElementById('wdGrid').style.gridTemplateColumns = window.innerWidth >= 1024 ? '1.2fr 1fr' : '1fr';
+    };
+    layout();
+    window.addEventListener('resize', layout);
+
+    async function loadHistory() {
+      try {
+        const d = await api('/api/transactions?type=withdrawal&limit=5');
+        const el = document.getElementById('wdHistory');
+        if (!d.data.length) {
+          el.innerHTML = '<div style="padding:1.5rem; text-align:center; color:var(--slate-400); font-size:12px;">Belum ada penarikan.</div>';
+          return;
+        }
+        el.innerHTML = `<table class="data-table">
+          <thead><tr><th>ID</th><th>Channel</th><th>Nominal</th><th>Admin</th><th>Status</th><th>Waktu</th></tr></thead>
+          <tbody>${d.data.map(t => `<tr>
+            <td style="font-family:ui-monospace,monospace; font-size:11px;">${t.id}</td>
+            <td>${t.channel || '-'}</td>
+            <td style="font-weight:500; color:var(--slate-900);">${rupiah(t.amount)}</td>
+            <td>${rupiah(t.fee)}</td>
+            <td>${statusBadge(t.status)}</td>
+            <td style="font-size:11.5px; color:var(--slate-500);">${timeAgo(t.created_at)}</td>
+          </tr>`).join('')}</tbody></table>`;
+      } catch (e) { /* diamkan */ }
+    }
+    loadHistory();
+
+    document.getElementById('submitBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('submitBtn');
+      const alertBox = document.getElementById('alertBox');
+      alertBox.classList.add('hidden');
+      btn.disabled = true;
+
+      try {
+        await api('/api/transactions/withdrawals/create', {
+          method: 'POST',
+          body: {
+            amount: Number(amountInput.value),
+            channel: channelInput.value,
+            account_number: document.getElementById('accInput').value.trim(),
+            account_name: document.getElementById('nameInput').value.trim()
+          }
+        });
+        toast('Permintaan withdrawal masuk antrean owner; belum dinyatakan berhasil.', 'success');
+        const me = await api('/api/auth/me');
+        Store.user = me.user;
+        document.querySelector('.balance-value').textContent = rupiah(me.user.balance);
+        amountInput.value = '';
+        summary();
+        loadHistory();
+      } catch (e) {
+        document.getElementById('alertText').textContent = e.message;
+        alertBox.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+</script>
+</body>
+</html>

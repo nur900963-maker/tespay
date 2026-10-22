@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Owner Panel - Vincent Pay</title>
+  <link rel="icon" href="/icon.svg">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    .owner-tabs{display:flex;gap:.45rem;flex-wrap:wrap;margin:0 0 1rem}
+    .owner-tab{border:1px solid var(--slate-200);border-radius:9px;padding:.55rem .8rem;font-size:11.5px;color:var(--slate-600);background:#fff}
+    .owner-tab.active{border-color:var(--brand-500);background:var(--brand-50);color:var(--brand-700);font-weight:600}
+    .owner-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.8rem;margin-bottom:1.15rem}
+    .owner-kpi{background:#fff;border:1px solid var(--slate-200);border-radius:12px;padding:1rem}
+    .owner-kpi .k{font-size:11px;color:var(--slate-500)} .owner-kpi .v{font-size:1.35rem;font-weight:700;letter-spacing:-.03em;margin-top:.35rem;color:var(--slate-900)}
+    .owner-card{background:#fff;border:1px solid var(--slate-200);border-radius:12px;margin-bottom:1rem;overflow:hidden}
+    .owner-card-head{padding:.9rem 1rem;border-bottom:1px solid var(--slate-100);display:flex;align-items:center;justify-content:space-between;gap:.6rem;flex-wrap:wrap;font-size:12px;font-weight:650}
+    .owner-card-body{padding:1rem}
+    .owner-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.85rem}
+    .owner-field label{display:block;font-size:11px;color:var(--slate-600);margin-bottom:.35rem}
+    .owner-field input,.owner-field textarea,.owner-field select{width:100%;min-width:0;border:1px solid var(--slate-200);border-radius:8px;padding:.65rem .7rem;background:#fff;color:var(--slate-800);font:inherit;font-size:12px}
+    .owner-field textarea{min-height:100px;font-family:ui-monospace,monospace;font-size:10.5px}
+    .owner-note{font-size:11px;color:var(--slate-500);line-height:1.65}
+    .owner-table-wrap{overflow:auto;width:100%} .owner-table{width:100%;border-collapse:collapse;min-width:650px;font-size:11.5px}
+    .owner-table th,.owner-table td{text-align:left;padding:.7rem .8rem;border-bottom:1px solid var(--slate-100);vertical-align:top}
+    .owner-table th{font-weight:600;color:var(--slate-500);background:var(--slate-50);white-space:nowrap}
+    .owner-actions{display:flex;gap:.35rem;flex-wrap:wrap}
+    .owner-actions button{font-size:10.5px;padding:.4rem .55rem}
+    .owner-pill{display:inline-flex;align-items:center;padding:.2rem .45rem;border-radius:6px;background:var(--slate-100);font-size:10px;color:var(--slate-600)}
+    @media(max-width:600px){.owner-card-body{padding:.75rem}.owner-kpi .v{font-size:1.15rem}}
+  </style>
+</head>
+<body><div class="dash-shell" id="shell"></div><script src="/js/app.js"></script><script src="/js/dashboard.js"></script><script src="/js/admin.js"></script></body>
+</html>

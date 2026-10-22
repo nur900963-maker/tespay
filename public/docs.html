@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dokumentasi API - Vincent Pay</title>
+  <meta name="description" content="Integrasi pembayaran QRIS ke aplikasi Anda — dokumentasi lengkap API Vincent Pay.">
+  <meta name="theme-color" content="#9333ea">
+  <link rel="icon" href="/icon.svg">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    .doc-shell { display:grid; grid-template-columns: 1fr; gap:1.5rem; }
+    @media (min-width: 900px) { .doc-shell { grid-template-columns: 205px 1fr; } }
+    .toc { position: sticky; top: 5rem; align-self: start; }
+    .toc a { display:block; font-size:12px; color:var(--slate-600); text-decoration:none; padding:.3rem .55rem; border-left:2px solid transparent; border-radius:0 6px 6px 0; }
+    .toc a:hover, .toc a.active { color:var(--brand); background:var(--brand-50); border-left-color:var(--brand); }
+    .doc-section { margin-bottom:2.25rem; scroll-margin-top:5rem; }
+    .doc-h2 { font-size:.98rem; font-weight:600; color:var(--slate-900); display:flex; align-items:center; gap:.55rem; margin-bottom:.7rem; }
+    .doc-num { width:22px; height:22px; border-radius:6px; background:var(--brand-50); color:var(--brand); font-size:11px; display:inline-flex; align-items:center; justify-content:center; font-weight:600; }
+    .doc-p { font-size:12.5px; color:var(--slate-600); line-height:1.8; margin-bottom:.85rem; }
+    .method-row { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:.8rem; }
+    .method-badge { font-size:10.5px; font-weight:600; padding:.2rem .5rem; border-radius:5px; background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
+    .endpoint-url { font-family:ui-monospace,monospace; font-size:11.5px; color:var(--slate-700); background:var(--slate-50); border:1px solid var(--slate-200); padding:.25rem .55rem; border-radius:5px; word-break:break-all; }
+    .param-table { width:100%; border-collapse:collapse; font-size:12px; margin-bottom:.9rem; }
+    .param-table th { text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--slate-400); font-weight:600; padding:.45rem .6rem; border-bottom:1px solid var(--slate-200); }
+    .param-table td { padding:.45rem .6rem; border-bottom:1px solid var(--slate-100); color:var(--slate-600); }
+    .param-table td:first-child { font-family:ui-monospace,monospace; color:var(--brand-600); }
+    pre.code-block { margin:0; }
+  </style>
+</head>
+<body>
+
+<div class="bg-decor"><div class="bg-blob bg-blob-1"></div><div class="bg-blob bg-blob-2"></div></div>
+<div class="grid-pattern"></div>
+
+<header id="nav"></header>
+
+<main style="position:relative; z-index:1; max-width:72rem; margin:0 auto; padding:0 1.25rem;">
+  <div style="max-width:60rem; margin:0 auto; padding-bottom:2rem;">
+
+    <div style="margin-bottom:1.5rem; padding-top:.5rem;" class="anim-fade-up">
+      <h1 class="page-title">Dokumentasi API</h1>
+      <p class="page-subtitle">Integrasi pembayaran ke aplikasi Anda</p>
+    </div>
+
+    <div class="doc-shell">
+      <!-- TOC -->
+      <aside class="toc anim-fade-up delay-1">
+        <p style="font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--slate-400); font-weight:600; padding-left:.55rem; margin-bottom:.5rem;">Daftar Isi</p>
+        <a href="#section-1">1. Persiapan</a>
+        <a href="#section-2">2. Cek Saldo &amp; Profil</a>
+        <a href="#section-3">3. Membuat Invoice</a>
+        <a href="#section-4">4. Cek Status Invoice</a>
+        <a href="#section-5">5. Webhook</a>
+      </aside>
+
+      <!-- CONTENT -->
+      <div>
+        <!-- 1 -->
+        <section id="section-1" class="doc-section anim-fade-up delay-1">
+          <h2 class="doc-h2"><span class="doc-num">1</span> Persiapan</h2>
+          <p class="doc-p">
+            Langkah pertama yang harus kamu lakukan adalah mendaftar dan login ke dashboard. Setelah itu,
+            dapatkan <strong>API Key</strong> kamu di menu <a href="/profile" class="link-brand">Profil</a>
+            untuk mulai mengintegrasikan sistem pembayaran ke aplikasi kamu.
+          </p>
+          <div class="alert alert-info" style="margin-bottom:1rem;">
+            <i class="fas fa-shield-halved" style="margin-top:.1rem;"></i>
+            <span>Simpan API Key Anda di tempat yang aman. <strong>Jangan bagikan ke siapa pun.</strong> Jika bocor, segera generate ulang di menu Profil.</span>
+          </div>
+          <div style="background:var(--slate-50); border:1px solid var(--slate-200); border-radius:10px; padding:.85rem 1rem; font-size:12px; color:var(--slate-600); line-height:1.8;">
+            <strong style="color:var(--slate-800);">Base URL:</strong>
+            <code style="color:var(--brand-600); font-family:ui-monospace,monospace;">http://localhost:3000</code>
+            <span style="color:var(--slate-400);"> (ganti dengan domain Anda saat produksi)</span><br>
+            <strong style="color:var(--slate-800);">Autentikasi:</strong>
+            <code style="color:var(--brand-600); font-family:ui-monospace,monospace;">?apikey=YOUR_API_KEY</code>
+            atau header <code style="color:var(--brand-600); font-family:ui-monospace,monospace;">X-API-Key</code>
+          </div>
+        </section>
+
+        <!-- 2 -->
+        <section id="section-2" class="doc-section">
+          <h2 class="doc-h2"><span class="doc-num">2</span> Cek Saldo &amp; Profil</h2>
+          <div class="method-row">
+            <span class="method-badge">GET</span>
+            <span class="endpoint-url">/api/profile</span>
+          </div>
+          <table class="param-table">
+            <thead><tr><th>Nama</th><th>Tipe</th><th>Wajib</th></tr></thead>
+            <tbody>
+              <tr><td>apikey</td><td>string</td><td>Ya</td></tr>
+            </tbody>
+          </table>
+          <p style="font-size:11.5px; color:var(--slate-500); margin-bottom:.5rem; font-weight:500;">Contoh Request</p>
+          <div class="code-block" style="margin-bottom:.85rem;"><button class="copy-btn" onclick="copyBlock(this)">Copy</button><pre style="margin:0;"><span class="tok-key">const</span> baseUrl = <span class="tok-str">'http://localhost:3000'</span>;
+<span class="tok-key">const</span> apiKey  = <span class="tok-str">'YOUR_API_KEY'</span>;
+
+<span class="tok-key">const</span> res  = <span class="tok-key">await</span> fetch(<span class="tok-str">`${baseUrl}/api/profile?apikey=${apiKey}`</span>);
+<span class="tok-key">const</span> data = <span class="tok-key">await</span> res.json();
+
+console.log(data);
+
+<span class="tok-com">// Contoh Response (200 OK):</span>
+<span class="tok-com">// {</span>
+<span class="tok-com">//   "username": "your_username",</span>
+<span class="tok-com">//   "email": "name@gmail.com",</span>
+<span class="tok-com">//   "balance": 150000,</span>
+<span class="tok-com">//   "pending_balance": 100000</span>
+<span class="tok-com">// }</span></pre></div>
+        </section>
+
+        <!-- 3 -->
+        <section id="section-3" class="doc-section">
+          <h2 class="doc-h2"><span class="doc-num">3</span> Membuat Invoice</h2>
+          <div class="method-row">
+            <span class="method-badge">GET</span>
+            <span class="endpoint-url">/api/createinvoice</span>
+          </div>
+          <table class="param-table">
+            <thead><tr><th>Nama</th><th>Tipe</th><th>Wajib</th><th>Keterangan</th></tr></thead>
+            <tbody>
+              <tr><td>apikey</td><td>string</td><td>Ya</td><td>API key Anda</td></tr>
+              <tr><td>amount</td><td>integer</td><td>Ya</td><td>Nominal 1.000 – 1.500.000</td></tr>
+            </tbody>
+          </table>
+          <p style="font-size:11.5px; color:var(--slate-500); margin-bottom:.5rem; font-weight:500;">Contoh Request</p>
+          <div class="code-block" style="margin-bottom:.85rem;"><button class="copy-btn" onclick="copyBlock(this)">Copy</button><pre style="margin:0;"><span class="tok-key">const</span> baseUrl = <span class="tok-str">'http://localhost:3000'</span>;
+<span class="tok-key">const</span> apiKey  = <span class="tok-str">'YOUR_API_KEY'</span>;
+
+<span class="tok-key">const</span> res = <span class="tok-key">await</span> fetch(
+  <span class="tok-str">`${baseUrl}/api/createinvoice?apikey=${apiKey}&amount=50000`</span>
+);
+<span class="tok-key">const</span> data = <span class="tok-key">await</span> res.json();
+
+console.log(data);
+
+<span class="tok-com">// Contoh Response (200 OK):</span>
+<span class="tok-com">// {</span>
+<span class="tok-com">//   "success": true,</span>
+<span class="tok-com">//   "invoice_id": "64c8d9e...",</span>
+<span class="tok-com">//   "amount": 50000,</span>
+<span class="tok-com">//   "fee": 500,</span>
+<span class="tok-com">//   "total": 50500,</span>
+<span class="tok-com">//   "qris_image": "https://...",</span>
+<span class="tok-com">//   "payment_link": "https://...",</span>
+<span class="tok-com">//   "expired_at": "2025-01-01 12:00:00"</span>
+<span class="tok-com">// }</span></pre></div>
+          <p class="doc-p" style="margin-bottom:0;">Gunakan nilai <code style="color:var(--brand-600);">payment_link</code> atau <code style="color:var(--brand-600);">qris_image</code> untuk menampilkan halaman pembayaran kepada customer.</p>
+        </section>
+
+        <!-- 4 -->
+        <section id="section-4" class="doc-section">
+          <h2 class="doc-h2"><span class="doc-num">4</span> Cek Status Invoice</h2>
+          <div class="method-row">
+            <span class="method-badge">GET</span>
+            <span class="endpoint-url">/api/checkinvoice</span>
+          </div>
+          <table class="param-table">
+            <thead><tr><th>Nama</th><th>Tipe</th><th>Wajib</th></tr></thead>
+            <tbody>
+              <tr><td>apikey</td><td>string</td><td>Ya</td></tr>
+              <tr><td>id</td><td>string</td><td>Ya</td></tr>
+            </tbody>
+          </table>
+          <div class="code-block" style="margin-bottom:.85rem;"><button class="copy-btn" onclick="copyBlock(this)">Copy</button><pre style="margin:0;"><span class="tok-key">const</span> baseUrl   = <span class="tok-str">'http://localhost:3000'</span>;
+<span class="tok-key">const</span> apiKey    = <span class="tok-str">'YOUR_API_KEY'</span>;
+<span class="tok-key">const</span> invoiceId = <span class="tok-str">'YOUR_INVOICE_ID'</span>;
+
+<span class="tok-key">const</span> res = <span class="tok-key">await</span> fetch(
+  <span class="tok-str">`${baseUrl}/api/checkinvoice?apikey=${apiKey}&id=${invoiceId}`</span>
+);
+<span class="tok-key">const</span> data = <span class="tok-key">await</span> res.json();
+
+<span class="tok-com">// Contoh Response (200 OK):</span>
+<span class="tok-com">// {</span>
+<span class="tok-com">//   "invoice_id": "64c8d9e...",</span>
+<span class="tok-com">//   "amount": 50000,</span>
+<span class="tok-com">//   "fee": 500,</span>
+<span class="tok-com">//   "total": 50500,</span>
+<span class="tok-com">//   "status": "paid",</span>
+<span class="tok-com">//   "qris_image": "https://...",</span>
+<span class="tok-com">//   "payment_link": "https://...",</span>
+<span class="tok-com">//   "expired_at": "2025-01-01 12:00:00",</span>
+<span class="tok-com">//   "created_at": "2025-01-01 11:30:00",</span>
+<span class="tok-com">//   "balance_after": 500000,</span>
+<span class="tok-com">//   "completed_at": "2025-01-01 11:35:00"</span>
+<span class="tok-com">// }</span></pre></div>
+          <p class="doc-p" style="margin-bottom:0;">Parameter <code style="color:var(--brand-600);">id</code> juga bisa dikirim dengan nama <code style="color:var(--brand-600);">invoice_id</code> untuk kompatibilitas.</p>
+        </section>
+
+        <!-- 5 -->
+        <section id="section-5" class="doc-section">
+          <h2 class="doc-h2"><span class="doc-num">5</span> Webhook</h2>
+          <p class="doc-p">
+            Webhook memungkinkan sistem Anda menerima notifikasi <strong>real-time</strong> ketika ada transaksi deposit
+            yang berhasil dibayar (status <code style="color:var(--brand-600);">paid</code>) — tanpa perlu melakukan polling ke API kami.
+          </p>
+
+          <p style="font-size:12px; font-weight:600; color:var(--slate-800); margin-bottom:.5rem;">Setup Webhook</p>
+          <p class="doc-p">Aktifkan webhook di halaman <a href="/profile" class="link-brand">Profil</a>:</p>
+
+          <p style="font-size:12px; font-weight:600; color:var(--slate-800); margin-bottom:.5rem;">Format Request yang Kami Kirim</p>
+          <div class="code-block" style="margin-bottom:1rem;"><button class="copy-btn" onclick="copyBlock(this)">Copy</button><pre style="margin:0;"><span class="tok-key">POST</span> &lt;URL webhook Anda&gt;
+Content-Type: application/json
+X-Webhook-Event: deposit.paid
+X-Webhook-Id: &lt;log_id&gt;
+X-Webhook-Attempt: 1
+User-Agent: Vincent Pay-Webhook/1.0</pre></div>
+
+          <p style="font-size:12px; font-weight:600; color:var(--slate-800); margin-bottom:.5rem;">Body (JSON Payload)</p>
+          <div class="code-block" style="margin-bottom:1rem;"><button class="copy-btn" onclick="copyBlock(this)">Copy</button><pre style="margin:0;">{
+  <span class="tok-key">"event"</span>: <span class="tok-str">"deposit.paid"</span>,
+  <span class="tok-key">"created_at"</span>: <span class="tok-str">"2025-01-01T12:00:00.000Z"</span>,
+  <span class="tok-key">"data"</span>: {
+    <span class="tok-key">"id"</span>: <span class="tok-str">"TRX..."</span>,
+    <span class="tok-key">"reference"</span>: <span class="tok-str">"TRX..."</span>,
+    <span class="tok-key">"type"</span>: <span class="tok-str">"deposit"</span>,
+    <span class="tok-key">"amount"</span>: 10000,
+    <span class="tok-key">"fee"</span>: 123,
+    <span class="tok-key">"total"</span>: 10123,
+    <span class="tok-key">"status"</span>: <span class="tok-str">"paid"</span>,
+    <span class="tok-key">"qris_image"</span>: <span class="tok-str">"https://..."</span>,
+    <span class="tok-key">"created_at"</span>: <span class="tok-str">"2025-01-01T11:55:00.000Z"</span>,
+    <span class="tok-key">"completed_at"</span>: <span class="tok-str">"2025-01-01T12:00:00.000Z"</span>,
+    <span class="tok-key">"balance_after"</span>: 10123
+  }
+}</pre></div>
+
+          <p style="font-size:12px; font-weight:600; color:var(--slate-800); margin-bottom:.5rem;">Response yang Kami Harapkan</p>
+          <ul class="info-list" style="margin-bottom:1rem;">
+            <li><i class="fas fa-check"></i><span><strong>HTTP 2xx</strong> → dianggap sukses, selesai</span></li>
+            <li><i class="fas fa-rotate"></i><span><strong>Selain 2xx</strong> atau timeout (15 detik) → otomatis retry</span></li>
+          </ul>
+
+          <p style="font-size:12px; font-weight:600; color:var(--slate-800); margin-bottom:.5rem;">Kebijakan Retry Otomatis</p>
+          <p class="doc-p">
+            Total <strong>5 percobaan</strong> dengan jeda bertingkat:
+            <code style="color:var(--brand-600);">1 menit</code> → <code style="color:var(--brand-600);">5 menit</code> →
+            <code style="color:var(--brand-600);">15 menit</code> → <code style="color:var(--brand-600);">1 jam</code> →
+            <code style="color:var(--brand-600);">6 jam</code>.
+            Anda juga bisa melakukan retry manual dari halaman <a href="/webhook-logs" class="link-brand">Riwayat Webhook</a>.
+          </p>
+
+          <p style="font-size:12px; font-weight:600; color:var(--slate-800); margin-bottom:.5rem;">Contoh Handler (Node.js / Express)</p>
+          <div class="code-block" style="margin-bottom:1rem;"><button class="copy-btn" onclick="copyBlock(this)">Copy</button><pre style="margin:0;"><span class="tok-key">const</span> express = require(<span class="tok-str">'express'</span>);
+<span class="tok-key">const</span> app = express();
+
+app.use(express.json());
+
+app.post(<span class="tok-str">'/webhook'</span>, (req, res) =&gt; {
+  <span class="tok-key">const</span> event = req.body.event;
+
+  <span class="tok-key">if</span> (event === <span class="tok-str">'deposit.paid'</span>) {
+    <span class="tok-key">const</span> data = req.body.data;
+    console.log(<span class="tok-str">'💰 Deposit paid:'</span>, data.id, data.amount);
+
+    <span class="tok-com">// TODO: update saldo user di sistem Anda</span>
+  }
+
+  <span class="tok-com">// Selalu balas 200 agar dianggap sukses</span>
+  res.status(200).json({ ok: <span class="tok-key">true</span> });
+});
+
+app.listen(3000);</pre></div>
+
+          <p class="doc-p" style="margin-bottom:0;">
+            Pastikan endpoint Anda <strong>selalu membalas HTTP 2xx</strong> secepat mungkin (idealnya &lt; 5 detik).
+            Jika butuh proses lama, simpan payload dulu lalu proses di background (queue) agar tidak timeout.
+          </p>
+        </section>
+
+        <!-- extra: endpoint dashboard -->
+        <section class="doc-section">
+          <h2 class="doc-h2"><i class="fas fa-puzzle-piece" style="color:var(--brand); font-size:13px;"></i> Endpoint Dashboard (JWT)</h2>
+          <p class="doc-p">Endpoint berikut dipakai oleh dashboard dan memerlukan header <code style="color:var(--brand-600);">Authorization: Bearer &lt;token&gt;</code>.</p>
+          <table class="param-table">
+            <thead><tr><th>Method</th><th>Endpoint</th><th>Keterangan</th></tr></thead>
+            <tbody>
+              <tr><td>POST</td><td>/api/auth/register</td><td>Daftar akun baru</td></tr>
+              <tr><td>POST</td><td>/api/auth/login</td><td>Login, mengembalikan JWT</td></tr>
+              <tr><td>GET</td><td>/api/auth/me</td><td>Data user yang sedang login</td></tr>
+              <tr><td>GET</td><td>/api/user/profile</td><td>Profil + statistik</td></tr>
+              <tr><td>PUT</td><td>/api/user/profile</td><td>Ubah profil &amp; webhook</td></tr>
+              <tr><td>GET</td><td>/api/user/stats</td><td>Statistik dashboard</td></tr>
+              <tr><td>GET</td><td>/api/user/api-keys</td><td>Daftar API key</td></tr>
+              <tr><td>POST</td><td>/api/user/api-keys/regenerate</td><td>Generate ulang API key</td></tr>
+              <tr><td>POST</td><td>/api/transactions</td><td>Buat invoice deposit</td></tr>
+              <tr><td>GET</td><td>/api/transactions</td><td>Riwayat transaksi (paginasi)</td></tr>
+              <tr><td>POST</td><td>/api/transactions/withdrawals/create</td><td>Penarikan saldo</td></tr>
+              <tr><td>GET</td><td>/api/transactions/webhooks/logs</td><td>Riwayat webhook</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+    </div>
+
+    <div style="text-align:center; margin-top:1rem;">
+      <a href="/docs" target="_blank" rel="noopener" class="link-brand" style="font-size:12.5px;">
+        <i class="fas fa-headset" style="font-size:11px;"></i> Dokumentasi Vincent Pay
+      </a>
+    </div>
+  </div>
+</main>
+
+<script src="/js/app.js"></script>
+<script>
+  renderNav('docs');
+
+  function copyBlock(btn) {
+    const text = btn.parentElement.querySelector('pre').innerText;
+    copyText(text, btn);
+  }
+  window.copyBlock = copyBlock;
+
+  // highlight TOC aktif saat scroll
+  const sections = document.querySelectorAll('.doc-section[id]');
+  const links = document.querySelectorAll('.toc a');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + e.target.id));
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  sections.forEach(s => io.observe(s));
+</script>
+</body>
+</html>

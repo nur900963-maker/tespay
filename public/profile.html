@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profil &amp; API Key - Vincent Pay</title>
+  <link rel="icon" href="/icon.svg">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+<div class="dash-shell" id="shell"></div>
+
+<script src="/js/app.js"></script>
+<script src="/js/dashboard.js"></script>
+<script>
+  bootDashboard('profile', 'Profil & API Key', async () => {
+    const c = document.getElementById('content');
+    c.innerHTML = '<div style="text-align:center; padding:3rem; color:var(--slate-400);"><i class="fas fa-spinner fa-spin"></i></div>';
+
+    let profile;
+    try { profile = await api('/api/user/profile'); }
+    catch (e) { c.innerHTML = `<div class="alert alert-error">${e.message}</div>`; return; }
+
+    const u = profile.user;
+
+    c.innerHTML = `
+      <div style="margin-bottom:1.25rem;">
+        <h1 style="font-size:1.15rem; font-weight:600; color:var(--slate-900);">Profil &amp; API Key</h1>
+        <p style="font-size:12px; color:var(--slate-500); margin-top:.25rem;">Kelola data akun, API key, dan konfigurasi webhook.</p>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr; gap:1.25rem;" id="profGrid">
+
+        <div style="display:flex; flex-direction:column; gap:1.25rem;">
+          <!-- profil -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div style="display:flex; align-items:center; gap:.5rem;">
+                <div class="icon-box icon-purple"><i class="fas fa-user"></i></div>
+                <span>Data Akun</span>
+              </div>
+            </div>
+            <div class="dash-card-body">
+              <div id="profAlert" class="alert alert-error hidden" style="margin-bottom:1rem;"><span></span></div>
+              <div id="profSuccess" class="alert alert-success hidden" style="margin-bottom:1rem;"><span></span></div>
+
+              <label style="display:block; font-size:12.5px; font-weight:500; color:var(--slate-800); margin-bottom:.5rem;">Username</label>
+              <input id="usernameInput" class="form-input" value="${u.username}" maxlength="15">
+
+              <label style="display:block; font-size:12.5px; font-weight:500; color:var(--slate-800); margin:.85rem 0 .5rem;">Email</label>
+              <input id="emailInput" class="form-input" type="email" value="${u.email}">
+
+              <label style="display:block; font-size:12.5px; font-weight:500; color:var(--slate-800); margin:.85rem 0 .5rem;">Kode Referral</label>
+              <div style="display:flex; gap:.5rem;">
+                <input class="form-input" value="${u.referral_code || '-'}" readonly style="background:var(--slate-50);">
+                <button class="btn-secondary" style="font-size:11.5px;" onclick="copyText('${u.referral_code || ''}', this)">
+                  <i class="fas fa-copy" style="font-size:10px;"></i>
+                </button>
+              </div>
+
+              <button id="saveProfile" class="btn-submit" style="margin-top:1rem;">Simpan Perubahan</button>
+
+              <div style="border-top:1px solid var(--slate-100); margin:1.1rem 0;"></div>
+
+              <p style="font-size:12.5px; font-weight:500; color:var(--slate-800); margin-bottom:.6rem;">Ubah Password</p>
+              <input id="curPass" type="password" class="form-input" placeholder="Password saat ini" style="margin-bottom:.5rem;">
+              <input id="newPass" type="password" class="form-input" placeholder="Password baru" style="margin-bottom:.5rem;">
+              <button id="savePass" class="btn-secondary" style="width:100%; font-size:12px;">Perbarui Password</button>
+            </div>
+          </div>
+
+          <!-- statistik -->
+          <div class="dash-card">
+            <div class="dash-card-header"><span style="font-size:12.5px;">Ringkasan Akun</span></div>
+            <div class="dash-card-body" style="display:flex; flex-direction:column; gap:.6rem; font-size:12px;">
+              <div style="display:flex; justify-content:space-between;"><span style="color:var(--slate-500);">Saldo</span><strong>${rupiah(u.balance)}</strong></div>
+              <div style="display:flex; justify-content:space-between;"><span style="color:var(--slate-500);">Pending</span><strong>${rupiah(u.pending_balance)}</strong></div>
+              <div style="display:flex; justify-content:space-between;"><span style="color:var(--slate-500);">Total transaksi</span><strong>${profile.stats.total_transactions}</strong></div>
+              <div style="display:flex; justify-content:space-between;"><span style="color:var(--slate-500);">Terdaftar</span><strong>${fmtDateShort(u.created_at)}</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:1.25rem;">
+          <!-- API key -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div style="display:flex; align-items:center; gap:.5rem;">
+                <div class="icon-box icon-indigo"><i class="fas fa-key"></i></div>
+                <span>API Key</span>
+              </div>
+            </div>
+            <div class="dash-card-body">
+              <div style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
+                <code id="apiKeyBox" style="flex:1; min-width:180px; font-family:ui-monospace,monospace; font-size:11px; background:var(--slate-50); border:1px solid var(--slate-200); padding:.5rem .6rem; border-radius:8px; word-break:break-all;">${u.api_key}</code>
+              </div>
+              <div style="display:flex; gap:.5rem; margin-top:.7rem;">
+                <button class="btn-secondary" style="flex:1; font-size:11.5px;" onclick="copyText('${u.api_key}', this)">
+                  <i class="fas fa-copy" style="font-size:10px;"></i> Copy
+                </button>
+                <button id="regenBtn" class="btn-danger" style="flex:1; font-size:11.5px;">
+                  <i class="fas fa-rotate" style="font-size:10px;"></i> Generate Ulang
+                </button>
+              </div>
+              <p style="font-size:11px; color:var(--slate-400); margin-top:.6rem; line-height:1.6;">
+                Generate ulang akan menonaktifkan API key lama. Perbarui integrasi Anda setelahnya.
+              </p>
+
+              <div style="border-top:1px solid var(--slate-100); margin:1rem 0;"></div>
+              <p style="font-size:12px; font-weight:500; color:var(--slate-800); margin-bottom:.5rem;">Daftar API Key</p>
+              <div id="keyList" style="font-size:11.5px; color:var(--slate-500);">Memuat...</div>
+            </div>
+          </div>
+
+          <!-- webhook -->
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <div style="display:flex; align-items:center; gap:.5rem;">
+                <div class="icon-box icon-fuchsia"><i class="fas fa-webhook"></i></div>
+                <span>Webhook</span>
+              </div>
+              <label style="display:flex; align-items:center; gap:.4rem; font-size:11.5px; color:var(--slate-600); cursor:pointer;">
+                <input id="whEnabled" type="checkbox" ${u.webhook_enabled ? 'checked' : ''}> Aktif
+              </label>
+            </div>
+            <div class="dash-card-body">
+              <label style="display:block; font-size:12.5px; font-weight:500; color:var(--slate-800); margin-bottom:.5rem;">URL Webhook</label>
+              <input id="whUrl" class="form-input" placeholder="https://domain-anda.com/webhook" value="${u.webhook_url || ''}">
+              <p style="font-size:11px; color:var(--slate-400); margin-top:.45rem;">
+                Kami akan mengirim POST dengan event <code>deposit.paid</code>. Retry otomatis 5x.
+              </p>
+              <div style="display:flex; gap:.5rem; margin-top:.7rem;">
+                <button id="saveWh" class="btn-primary" style="flex:1; font-size:11.5px;">Simpan Webhook</button>
+                <button id="testWh" class="btn-secondary" style="flex:1; font-size:11.5px;">Test Webhook</button>
+              </div>
+              <div id="whResult" style="margin-top:.7rem; font-size:11.5px;"></div>
+              <a href="/webhook-logs" class="link-brand" style="font-size:11.5px; display:inline-block; margin-top:.7rem;">Lihat riwayat webhook &rarr;</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const layout = () => {
+      document.getElementById('profGrid').style.gridTemplateColumns = window.innerWidth >= 1024 ? '1fr 1fr' : '1fr';
+    };
+    layout();
+    window.addEventListener('resize', layout);
+
+    function flash(el, msg) {
+      el.querySelector('span').textContent = msg;
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 4000);
+    }
+
+    document.getElementById('saveProfile').addEventListener('click', async () => {
+      const btn = document.getElementById('saveProfile');
+      btn.disabled = true;
+      try {
+        const r = await api('/api/user/profile', {
+          method: 'PUT',
+          body: {
+            username: document.getElementById('usernameInput').value.trim(),
+            email: document.getElementById('emailInput').value.trim()
+          }
+        });
+        Store.user = r.user;
+        flash(document.getElementById('profSuccess'), r.message);
+        toast(r.message, 'success');
+      } catch (e) {
+        flash(document.getElementById('profAlert'), e.message);
+      } finally { btn.disabled = false; }
+    });
+
+    document.getElementById('savePass').addEventListener('click', async () => {
+      const btn = document.getElementById('savePass');
+      btn.disabled = true;
+      try {
+        const r = await api('/api/user/change-password', {
+          method: 'POST',
+          body: {
+            current_password: document.getElementById('curPass').value,
+            new_password: document.getElementById('newPass').value
+          }
+        });
+        toast(r.message, 'success');
+        document.getElementById('curPass').value = '';
+        document.getElementById('newPass').value = '';
+      } catch (e) {
+        toast(e.message, 'error');
+      } finally { btn.disabled = false; }
+    });
+
+    document.getElementById('regenBtn').addEventListener('click', async () => {
+      if (!confirm('Generate ulang API key? Key lama tidak akan berfungsi lagi.')) return;
+      const btn = document.getElementById('regenBtn');
+      btn.disabled = true;
+      try {
+        const r = await api('/api/user/api-keys/regenerate', { method: 'POST' });
+        document.getElementById('apiKeyBox').textContent = r.api_key;
+        toast(r.message, 'success');
+        loadKeys();
+      } catch (e) { toast(e.message, 'error'); }
+      finally { btn.disabled = false; }
+    });
+
+    async function loadKeys() {
+      try {
+        const d = await api('/api/user/api-keys');
+        document.getElementById('keyList').innerHTML = d.data.map(k => `
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:.5rem; padding:.4rem 0; border-bottom:1px solid var(--slate-100);">
+            <div style="min-width:0;">
+              <p style="color:var(--slate-700); font-weight:500;">${k.label}</p>
+              <p style="font-family:ui-monospace,monospace; font-size:10.5px; color:var(--slate-400); overflow:hidden; text-overflow:ellipsis;">${k.key.slice(0, 18)}…</p>
+            </div>
+            <span class="badge ${k.revoked ? 'badge-expired' : 'badge-paid'}">${k.revoked ? 'Dicabut' : 'Aktif'}</span>
+          </div>`).join('');
+      } catch (e) { /* ignore */ }
+    }
+    loadKeys();
+
+    document.getElementById('saveWh').addEventListener('click', async () => {
+      const btn = document.getElementById('saveWh');
+      btn.disabled = true;
+      try {
+        const r = await api('/api/user/profile', {
+          method: 'PUT',
+          body: {
+            webhook_url: document.getElementById('whUrl').value.trim(),
+            webhook_enabled: document.getElementById('whEnabled').checked
+          }
+        });
+        Store.user = r.user;
+        toast('Konfigurasi webhook disimpan.', 'success');
+      } catch (e) { toast(e.message, 'error'); }
+      finally { btn.disabled = false; }
+    });
+
+    document.getElementById('testWh').addEventListener('click', async () => {
+      const btn = document.getElementById('testWh');
+      const out = document.getElementById('whResult');
+      btn.disabled = true;
+      out.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
+      try {
+        const r = await api('/api/transactions/webhooks/test', { method: 'POST' });
+        out.innerHTML = `<div class="alert ${r.success ? 'alert-success' : 'alert-error'}">
+          <span>${r.success ? 'Webhook terkirim.' : 'Webhook gagal'} ${r.status ? '(HTTP ' + r.status + ')' : ''}</span></div>`;
+      } catch (e) {
+        out.innerHTML = `<div class="alert alert-error"><span>${e.message}</span></div>`;
+      } finally { btn.disabled = false; }
+    });
+  });
+</script>
+</body>
+</html>

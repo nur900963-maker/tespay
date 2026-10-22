@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daftar - Vincent Pay</title>
+  <meta name="theme-color" content="#9333ea">
+  <link rel="icon" href="/icon.svg">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body class="min-h-screen flex flex-col">
+
+<div class="bg-decor">
+  <div class="bg-blob bg-blob-1"></div>
+  <div class="bg-blob bg-blob-2"></div>
+</div>
+<div class="grid-pattern"></div>
+
+<div class="flex-1 flex flex-col justify-center items-center px-5 py-12 relative" style="z-index:1; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:3rem 1.25rem;">
+
+  <div class="reg-card w-full max-w-md flex flex-col gap-6 anim-fade-up" style="width:100%; max-width:28rem;">
+
+    <div style="text-align:center;">
+      <div style="margin-bottom:.75rem;">
+        <img src="/icon.svg" alt="Logo" style="height:3.5rem; width:auto; object-fit:contain; margin:0 auto; border-radius:.5rem;">
+      </div>
+      <h1 style="font-size:1.15rem; font-weight:500; color:var(--slate-900); letter-spacing:-.01em;">Buat Akun Baru</h1>
+      <p style="font-size:12px; color:var(--slate-500); margin-top:.375rem;">Isi data di bawah untuk mendaftar</p>
+    </div>
+
+    <div id="alertBox" class="alert alert-error hidden"><i class="fas fa-circle-exclamation" style="margin-top:.1rem;"></i><span id="alertText"></span></div>
+
+    <form id="registerForm" style="display:flex; flex-direction:column; gap:1rem;" autocomplete="off" novalidate>
+
+      <div>
+        <label style="display:block; font-size:12.5px; font-weight:500; color:var(--slate-800); margin-bottom:.5rem;">Username</label>
+        <input id="usernameInput" name="username" type="text" placeholder="Username" class="form-input" maxlength="15" required>
+        <p id="usernameFeedback" class="validation-msg"></p>
+      </div>
+
+      <div>
+        <label style="display:block; font-size:12.5px; font-weight:500; color:var(--slate-800); margin-bottom:.5rem;">Alamat Email</label>
+        <input id="emailInput" name="email" type="email" placeholder="nama@email.com" class="form-input" required>
+        <p id="emailFeedback" class="validation-msg"></p>
+      </div>
+
+      <div>
+        <label style="display:block; font-size:12.5px; font-weight:500; color:var(--slate-800); margin-bottom:.5rem;">Password</label>
+        <div class="form-input-wrapper">
+          <input id="passwordInput" name="password" type="password" placeholder="••••••••" class="form-input" minlength="8" required>
+          <button type="button" class="toggle-pass-btn js-toggle-pass" aria-label="Tampilkan password" aria-pressed="false">
+            <i class="fas fa-eye" style="font-size:12.5px;"></i>
+          </button>
+        </div>
+        <p id="passwordFeedback" class="validation-msg"></p>
+      </div>
+
+      <div>
+        <label style="display:block; font-size:12.5px; font-weight:500; color:var(--slate-800); margin-bottom:.5rem;">Konfirmasi Password</label>
+        <div class="form-input-wrapper">
+          <input id="confirmPasswordInput" name="confirm_password" type="password" placeholder="••••••••" class="form-input" minlength="8" required>
+          <button type="button" class="toggle-pass-btn js-toggle-pass" aria-label="Tampilkan password" aria-pressed="false">
+            <i class="fas fa-eye" style="font-size:12.5px;"></i>
+          </button>
+        </div>
+        <p id="confirmFeedback" class="validation-msg"></p>
+      </div>
+
+      <div>
+        <label style="display:block; font-size:12.5px; font-weight:500; color:var(--slate-800); margin-bottom:.5rem;">
+          Kode Referral <span style="color:var(--slate-400); font-weight:400; font-size:11px;">(Opsional)</span>
+        </label>
+        <input id="referralCodeInput" name="referralCode" type="text" class="form-input-ref" maxlength="20" autocomplete="off" spellcheck="false" placeholder="Kode referral (opsional)">
+        <p id="referralFeedback" class="validation-msg"></p>
+      </div>
+
+      <button type="submit" id="submitBtn" class="btn-submit" style="margin-top:.5rem;">
+        <span id="submitBtnText">Daftar Sekarang</span>
+        <i id="submitBtnSpinner" class="fas fa-spinner fa-spin hidden" style="font-size:12.5px;"></i>
+      </button>
+    </form>
+
+    <p style="text-align:center; font-size:12.5px; color:var(--slate-600);">
+      Sudah punya akun?
+      <a href="/login" class="link-brand">Masuk di sini</a>
+    </p>
+  </div>
+
+  <div style="margin-top:1.5rem; text-align:center; display:flex; flex-direction:column; gap:1rem;" class="anim-fade-up">
+    <a href="/" style="font-size:12.5px; color:var(--slate-500); text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:.4rem;">
+      <i class="fas fa-arrow-left" style="font-size:11px;"></i> Ke Beranda
+    </a>
+    <p style="font-size:11.5px; color:var(--slate-400);">
+      Butuh bantuan?
+      <a href="/docs" class="link-brand" style="font-size:12px; margin-left:.25rem;">Hubungi pengelola platform</a>
+    </p>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  const form = document.getElementById('registerForm');
+  const alertBox = document.getElementById('alertBox');
+  const alertText = document.getElementById('alertText');
+  const submitBtn = document.getElementById('submitBtn');
+  const submitText = document.getElementById('submitBtnText');
+  const spinner = document.getElementById('submitBtnSpinner');
+
+  const fields = {
+    username: { input: document.getElementById('usernameInput'), fb: document.getElementById('usernameFeedback') },
+    email: { input: document.getElementById('emailInput'), fb: document.getElementById('emailFeedback') },
+    password: { input: document.getElementById('passwordInput'), fb: document.getElementById('passwordFeedback') },
+    confirm_password: { input: document.getElementById('confirmPasswordInput'), fb: document.getElementById('confirmFeedback') },
+    referralCode: { input: document.getElementById('referralCodeInput'), fb: document.getElementById('referralFeedback') }
+  };
+
+  function setFeedback(key, msg, ok = false) {
+    const f = fields[key];
+    if (!f) return;
+    f.fb.textContent = msg || '';
+    f.fb.classList.toggle('ok', !!ok);
+    f.input.classList.toggle('invalid', !!msg && !ok);
+  }
+
+  // validasi langsung saat mengetik
+  fields.username.input.addEventListener('input', () => {
+    const v = fields.username.input.value.trim();
+    if (!v) return setFeedback('username', '');
+    if (!/^[a-zA-Z0-9_]{3,15}$/.test(v)) return setFeedback('username', 'Gunakan 3-15 karakter huruf, angka, atau underscore.');
+    setFeedback('username', 'Username tersedia.', true);
+  });
+
+  fields.email.input.addEventListener('input', () => {
+    const v = fields.email.input.value.trim();
+    if (!v) return setFeedback('email', '');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return setFeedback('email', 'Format email tidak valid.');
+    setFeedback('email', 'Email valid.', true);
+  });
+
+  fields.password.input.addEventListener('input', () => {
+    const v = fields.password.input.value;
+    if (!v) return setFeedback('password', '');
+    if (v.length < 4) return setFeedback('password', 'Password minimal 8 karakter.');
+    setFeedback('password', 'Password kuat.', true);
+  });
+
+  fields.confirm_password.input.addEventListener('input', () => {
+    const v = fields.confirm_password.input.value;
+    if (!v) return setFeedback('confirm_password', '');
+    if (v !== fields.password.input.value) return setFeedback('confirm_password', 'Konfirmasi password tidak sama.');
+    setFeedback('confirm_password', 'Password cocok.', true);
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    alertBox.classList.add('hidden');
+    Object.keys(fields).forEach(k => setFeedback(k, ''));
+
+    const payload = {
+      username: fields.username.input.value.trim(),
+      email: fields.email.input.value.trim(),
+      password: fields.password.input.value,
+      confirm_password: fields.confirm_password.input.value,
+      referralCode: fields.referralCode.input.value.trim()
+    };
+
+    // validasi klien
+    let ok = true;
+    if (!/^[a-zA-Z0-9_]{3,15}$/.test(payload.username)) { setFeedback('username', 'Username 3-15 karakter (huruf, angka, underscore).'); ok = false; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) { setFeedback('email', 'Format email tidak valid.'); ok = false; }
+    if (payload.password.length < 8) { setFeedback('password', 'Password minimal 8 karakter.'); ok = false; }
+    if (payload.password !== payload.confirm_password) { setFeedback('confirm_password', 'Konfirmasi password tidak sama.'); ok = false; }
+    if (!ok) return;
+
+    submitBtn.disabled = true;
+    submitText.textContent = 'Memproses...';
+    spinner.classList.remove('hidden');
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        if (data.errors) Object.entries(data.errors).forEach(([k, v]) => setFeedback(k, v));
+        throw new Error(data.message || 'Pendaftaran gagal.');
+      }
+
+      Store.token = data.token;
+      Store.user = data.user;
+      toast('Akun berhasil dibuat. Mengalihkan ke dashboard...', 'success');
+      setTimeout(() => location.href = '/dashboard', 700);
+    } catch (err) {
+      alertText.textContent = err.message;
+      alertBox.classList.remove('hidden');
+      submitBtn.disabled = false;
+      submitText.textContent = 'Daftar Sekarang';
+      spinner.classList.add('hidden');
+    }
+  });
+</script>
+</body>
+</html>
