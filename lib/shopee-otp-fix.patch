@@ -1,0 +1,674 @@
+diff -ruN '--exclude=node_modules' '--exclude=data' '--exclude=package-lock.json' before/orig/.env.example vincent.shoppe-main/.env.example
+--- before/orig/.env.example	2026-10-29 05:59:54.000000000 +0000
++++ vincent.shoppe-main/.env.example	2026-11-01 02:15:15.731982065 +0000
+@@ -24,5 +24,13 @@
+ GOBIZ_AUTH_URL=
+ GOBIZ_APP_VERSION=
+ 
+-# Kalau OTP ShopeePay tidak pernah sampai (lihat README)
++# Kalau OTP ShopeePay tidak pernah sampai (lihat README + documents/shopee-otp-audit/)
+ SHOPEE_DEVICE_REPORT=
++# Device id stabil untuk Shopee (kosong = acak per proses)
++SHOPEE_DEVICE_ID=
++# captcha_signature dari request send_otp yang sukses di browser
++SHOPEE_CAPTCHA_SIGNATURE=
++# Skema hash password Shopee: md5sha256 (default) | sha256 | plain
++SHOPEE_PW_HASH=
++# User-Agent untuk semua panggilan Shopee
++SHOPEE_UA=
+diff -ruN '--exclude=node_modules' '--exclude=data' '--exclude=package-lock.json' before/orig/README.md vincent.shoppe-main/README.md
+--- before/orig/README.md	2026-10-29 05:59:54.000000000 +0000
++++ vincent.shoppe-main/README.md	2026-11-01 02:18:49.808571585 +0000
+@@ -95,7 +95,23 @@
+ 
+ **ShopeePay**: menu ShopeePay, Login OTP, isi nomor HP akun Partner (password hanya kalau akunmu pakai password), Kirim OTP, masukkan kode. Kalau akunmu punya beberapa merchant, muncul pilihan merchant tanpa OTP baru. Token diperpanjang tanpa OTP selama sesi akun Shopee masih hidup. Kalau sesi habis, muncul pesan minta login OTP lagi.
+ 
+-Catatan jujur soal ShopeePay: alur loginnya menirukan portal web Shopee Partner (mengikuti klien open-source QrisMerchantID, MIT). Sudah dites lengkap terhadap server tiruan, **belum pernah dites ke Shopee asli**. Shopee punya pengecekan anti-fraud (device risk). Kalau OTP tidak pernah sampai atau muncul pesan captcha, itu penyebab paling mungkin. Dua jalan keluar: login sekali di browser lalu pakai **Isi token manual** (token `B:...` dari DevTools), atau isi `SHOPEE_DEVICE_REPORT` dengan blob telemetri dari request `.../v2/shpsec/web/report` di browsermu sendiri.
++Catatan jujur soal ShopeePay: alur loginnya menirukan portal web Shopee Partner (mengikuti klien open-source QrisMerchantID, MIT). Sudah dites lengkap terhadap server tiruan, **belum pernah dites ke Shopee asli**. Shopee punya pengecekan anti-fraud (device risk).
++
++### Kalau OTP tidak sampai (audit v2)
++
++Versi lama punya dua bug yang membuat `send_otp` **tidak pernah dipanggil** — jadi OTP memang tidak mungkin sampai, bukan masalah jaringan/WhatsApp:
++
++1. `check_password_migrate` divalidasi ketat. Endpoint itu membalas `error != 0` untuk akun yang tidak perlu migrasi password (normal), dan kode lama melempar error di situ.
++2. Telemetri device-risk dikirim sebagai `{}` tanpa header `szdet`, dan device id acak tiap request. Shopee membaca itu sebagai perangkat tanpa jejak → captcha / device-check.
++
++Keduanya sudah diperbaiki (lihat `documents/shopee-otp-audit/`). Langkah pakai:
++
++1. **Diagnosa dulu** — `POST /api/shopee/diagnose {phone, password}`. Endpoint ini berhenti **sebelum** `send_otp`, jadi tidak memicu OTP atau rate limit, dan memberi tahu langkah mana yang gagal (`device_risk`, `authenticate_by_password`, `get_otp_settings`).
++2. Kalau `device_risk` gagal atau captcha muncul: login manual sekali di browser, buka DevTools → Network, salin body request `POST .../v2/shpsec/web/report` ke `SHOPEE_DEVICE_REPORT`, dan `device_id` dari situ ke `SHOPEE_DEVICE_ID`. Kalau `send_otp` di browser membawa `captcha_signature`, isi `SHOPEE_CAPTCHA_SIGNATURE`.
++3. Kalau password ditolak padahal benar, coba `SHOPEE_PW_HASH=sha256` atau `plain` (default `md5sha256` = `sha256(md5(pw))`).
++4. Jalan pintas yang selalu berhasil: login sekali di browser lalu pakai **Isi token manual** (token `B:...` dari DevTools).
++
++Env baru: `SHOPEE_DEVICE_ID`, `SHOPEE_DEVICE_REPORT`, `SHOPEE_CAPTCHA_SIGNATURE`, `SHOPEE_PW_HASH`, `SHOPEE_UA`.
+ 
+ Token manual tetap tersedia di kedua provider.
+ 
+diff -ruN '--exclude=node_modules' '--exclude=data' '--exclude=package-lock.json' before/orig/app.js vincent.shoppe-main/app.js
+--- before/orig/app.js	2026-10-29 05:59:54.000000000 +0000
++++ vincent.shoppe-main/app.js	2026-11-01 02:15:09.051932694 +0000
+@@ -34,7 +34,13 @@
+ }
+ const secure = req => (req.secure || req.headers['x-forwarded-proto'] === 'https') ? 'Secure; ' : '';
+ const needAdmin = (req, res, next) => isAdmin(req) ? next() : res.status(401).json({ success: false, error: 'Login admin dulu' });
+-const fail = (res, e, code = 400) => res.status(e.status || code).json({ success: false, error: e.response?.data?.message || e.message });
++// hint + code ikut dikirim supaya UI bisa menampilkan langkah perbaikan (captcha / device-check).
++const fail = (res, e, code = 400) => res.status(e.status || code).json({
++  success: false,
++  error: e.response?.data?.message || e.message,
++  code: e.code ?? null,
++  hint: e.hint || null,
++});
+ const bad = (status, message) => Object.assign(new Error(message), { status });
+ 
+ // ---------- config per provider (store dulu, env sebagai cadangan) ----------
+@@ -354,8 +360,26 @@
+ // ---------- login ShopeePay via OTP ----------
+ app.post('/api/shopee/otp', needAdmin, async (req, res) => {
+   try {
+-    const c = await sauth.requestOtp(req.body.phone, { password: req.body.password || undefined, channel: req.body.channel, deviceReport: process.env.SHOPEE_DEVICE_REPORT || undefined });
+-    res.json({ success: true, challenge: seal(c, 5 * 60 * 1000), channel: c.channel, channels: c.channels });
++    const c = await sauth.requestOtp(req.body.phone, {
++      password: req.body.password || undefined,
++      channel: req.body.channel,
++      deviceReport: process.env.SHOPEE_DEVICE_REPORT || undefined,
++      captchaSignature: req.body.captcha_signature || process.env.SHOPEE_CAPTCHA_SIGNATURE || undefined,
++    });
++    // trace = jejak langkah (tanpa kode OTP), berguna saat OTP tidak sampai
++    res.json({ success: true, challenge: seal(c, 5 * 60 * 1000), channel: c.channel, channels: c.channels, trace: c.trace });
++  } catch (e) { fail(res, e); }
++});
++
++// Diagnostik: jalankan alur sampai SEBELUM send_otp, jadi tidak memicu OTP/rate limit.
++// Dipakai untuk memastikan apakah hambatannya di device-risk, password, atau captcha.
++app.post('/api/shopee/diagnose', needAdmin, async (req, res) => {
++  try {
++    const d = await sauth.diagnose(req.body.phone, {
++      password: req.body.password || undefined,
++      deviceReport: process.env.SHOPEE_DEVICE_REPORT || undefined,
++    });
++    res.json({ success: true, ...d });
+   } catch (e) { fail(res, e); }
+ });
+ async function finishShopee(ver, merchantId, save = true) {
+diff -ruN '--exclude=node_modules' '--exclude=data' '--exclude=package-lock.json' before/orig/config.js vincent.shoppe-main/config.js
+--- before/orig/config.js	2026-10-29 05:59:54.000000000 +0000
++++ vincent.shoppe-main/config.js	2026-11-01 02:15:14.908975981 +0000
+@@ -23,5 +23,17 @@
+   AUTO_LOOP: '',            // '0' = matikan loop auto refresh di server
+   GOBIZ_AUTH_URL: '',
+   GOBIZ_APP_VERSION: '',
++
++  // --- Shopee device-check / anti-fraud (lihat documents/shopee-otp-audit/) ---
++  // Blob telemetri asli dari request POST .../v2/shpsec/web/report di browser yang
++  // sudah pernah login sukses. Kosong = dipakai telemetri minimal dari lib/device.js.
+   SHOPEE_DEVICE_REPORT: '',
++  // Device id stabil. Kosong = acak per proses (berubah tiap restart/deploy).
++  SHOPEE_DEVICE_ID: '',
++  // captcha_signature dari request send_otp yang sukses di browser.
++  SHOPEE_CAPTCHA_SIGNATURE: '',
++  // Skema hash password: md5sha256 (default, seperti portal) | sha256 | plain
++  SHOPEE_PW_HASH: '',
++  // UA yang dipakai semua panggilan Shopee (login OTP + daftar transaksi).
++  SHOPEE_UA: '',
+ };
+diff -ruN '--exclude=node_modules' '--exclude=data' '--exclude=package-lock.json' before/orig/lib/device.js vincent.shoppe-main/lib/device.js
+--- before/orig/lib/device.js	1970-01-01 00:00:00.000000000 +0000
++++ vincent.shoppe-main/lib/device.js	2026-11-01 02:14:06.284469603 +0000
+@@ -0,0 +1,41 @@
++// Identitas perangkat untuk Shopee (anti-fraud / device risk).
++//
++// MASALAH LAMA: setiap request OTP membuat "perangkat" baru (device id acak,
++// body telemetri kosong `{}`, header `szdet` tidak dikirim). Bagi sistem risk
++// Shopee itu = perangkat tanpa riwayat + telemetri kosong -> skor risiko tinggi
++// -> captcha_required / OTP tidak pernah dikirim.
++//
++// Perbaikan: satu device id yang STABIL selama proses hidup (atau dari env),
++// UA yang sama untuk semua host Shopee, dan body telemetri yang selalu terisi.
++const crypto = require('crypto');
++
++// Satu UA untuk semua panggilan Shopee. Dulu shopeeAuth memakai Firefox 153 dan
++// lib/shopee.js memakai Chrome 126 -> dua "perangkat" berbeda dalam satu sesi.
++const UA = process.env.SHOPEE_UA
++  || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
++
++// Stabil per proses. Isi SHOPEE_DEVICE_ID kalau mau stabil antar-restart/deploy
++// (disarankan: ambil dari browser yang sudah pernah login sukses).
++const DEVICE_ID = process.env.SHOPEE_DEVICE_ID || crypto.randomUUID();
++
++const SZ_SDK = process.env.SHOPEE_SZ_SDK || '1.12.26-user.1';
++
++// Body untuk POST /v2/shpsec/web/report.
++// Kalau SHOPEE_DEVICE_REPORT diisi (blob asli dari DevTools browser), blob itu
++// yang dipakai apa adanya — itu yang paling akurat. Kalau tidak, kita kirim
++// struktur minimal yang konsisten, bukan `{}`.
++function buildDeviceReport(deviceId = DEVICE_ID, extra = {}) {
++  const ts = Date.now();
++  return JSON.stringify({
++    sdk_version: SZ_SDK,
++    platform: 'web',
++    device_id: deviceId,
++    deviceId,
++    ts,
++    timestamp: ts,
++    events: [{ type: 'page_view', ts, path: '/login' }],
++    ...extra,
++  });
++}
++
++module.exports = { UA, DEVICE_ID, SZ_SDK, buildDeviceReport };
+diff -ruN '--exclude=node_modules' '--exclude=data' '--exclude=package-lock.json' before/orig/lib/shopee.js vincent.shoppe-main/lib/shopee.js
+--- before/orig/lib/shopee.js	2026-10-29 05:59:54.000000000 +0000
++++ vincent.shoppe-main/lib/shopee.js	2026-11-01 02:15:08.186926302 +0000
+@@ -1,7 +1,7 @@
+ // Client ShopeePay Partner Portal (unofficial, read-only).
+ const axios = require('axios');
++const { UA } = require('./device');   // satu UA dengan login OTP: dua UA berbeda = dua "perangkat" di mata risk engine Shopee
+ const LIST = 'https://shopeepay.shopee.co.id/merchant/v1/partner-web/get-transaction-list';
+-const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
+ const STATUS = { 1: 'pending', 2: 'failed', 3: 'success', 4: 'refunded', 5: 'expired' };
+ 
+ const cleanAmount = v => parseInt(String(v || '0').replace(/[.,]/g, ''), 10) || 0;
+diff -ruN '--exclude=node_modules' '--exclude=data' '--exclude=package-lock.json' before/orig/lib/shopeeAuth.js vincent.shoppe-main/lib/shopeeAuth.js
+--- before/orig/lib/shopeeAuth.js	2026-10-29 05:59:54.000000000 +0000
++++ vincent.shoppe-main/lib/shopeeAuth.js	2026-11-01 02:15:00.089866483 +0000
+@@ -1,19 +1,36 @@
+ // Login OTP ShopeePay Partner Portal (tidak resmi, hanya untuk akun merchant milik sendiri).
+ // Alurnya mengikuti klien open-source QrisMerchantID / merchantid (MIT) yang menirukan portal web.
+ // Semua langkah stateless: tiap fungsi menerima & mengembalikan objek JSON biasa.
++//
++// ============================ CATATAN PERBAIKAN ============================
++// v2 (audit OTP): lihat documents/shopee-otp-audit/ untuk laporan lengkap.
++// Perubahan penting vs versi lama:
++//  1. check_password_migrate TIDAK lagi divalidasi ketat. Endpoint ini membalas
++//     error != 0 untuk akun yang tidak perlu migrasi password — versi lama
++//     melempar error di situ sehingga send_otp tidak pernah dipanggil.
++//  2. Device identity stabil (lib/device.js): device_id tetap, UA satu untuk
++//     semua host, body telemetri selalu terisi (bukan `{}`), header `szdet`
++//     selalu dikirim.
++//  3. captcha_signature bisa diisi (env SHOPEE_CAPTCHA_SIGNATURE / parameter),
++//     tidak lagi hardcode ''.
++//  4. Hash password bisa dipilih (SHOPEE_PW_HASH=md5sha256|sha256|plain).
++//  5. Error captcha / device-check dipetakan ke kode yang bisa ditindaklanjuti
++//     (CAPTCHA_REQUIRED, DEVICE_BLOCKED) + hint perbaikan.
++//  6. refreshSession mengambil risk token baru, tidak memakai token lama yang
++//     sudah kedaluwarsa (umur risk token pendek).
++// ==========================================================================
+ const axios = require('axios');
+ const crypto = require('crypto');
+ const { randomUUID } = require('crypto');
++const { UA, DEVICE_ID, SZ_SDK, buildDeviceReport } = require('./device');
+ 
+ const ACCOUNT = 'https://partner.business.accounts.shopee.co.id';
+ const PARTNER = 'https://partner.shopee.co.id';
+ const PARTNER_API = 'https://api.partner.shopee.co.id';
+ const FP_URL = 'https://df.infra.sz.shopee.co.id/v2/shpsec/web/report';
+-const SZ_SDK = '1.12.26-user.1';
+ const ACCOUNT_CLIENT_ID = '5', BUSINESS_CLIENT_ID = '1', LOGIN_FROM = '12';
+ const OTP_OP = 50001, NEED_OTP = 48401102, NOT_LOGIN = 48500102;
+ const COOKIE_TOKEN = '__shopee_partner_website_x_token_live';
+-const UA = process.env.SHOPEE_UA || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:153.0) Gecko/20100101 Firefox/153.0';
+ const LANG = 'id', AL = 'id,en-US;q=0.9,en;q=0.8';
+ const EP = {
+   pwMigrate: '/api/v4/account/business/check_password_migrate',
+@@ -29,8 +46,15 @@
+   userInfo: '/nb/mss/web-api/PartnerAccountServer/GetUserInfo',
+ };
+ 
++// Kode error yang kita pakai sendiri supaya UI bisa memberi instruksi tepat.
++const E_CAPTCHA = 'CAPTCHA_REQUIRED';
++const E_DEVICE = 'DEVICE_BLOCKED';
++const E_RATE = 'RATE_LIMITED';
++
+ class ShopeeError extends Error {
+-  constructor(msg, { status = 400, code = null, payload = null } = {}) { super(msg); this.status = status; this.code = code; this.payload = payload; }
++  constructor(msg, { status = 400, code = null, payload = null, hint = null } = {}) {
++    super(msg); this.status = status; this.code = code; this.payload = payload; this.hint = hint;
++  }
+ }
+ const bad = m => new ShopeeError(m, { status: 400 });
+ 
+@@ -108,7 +132,16 @@
+   const s = e164.startsWith('62') ? e164.slice(2) : e164;
+   return `(+62) ${[s.slice(0, 3), s.slice(3, 7), s.slice(7)].filter(Boolean).join(' ')}`;
+ }
+-const hashPw = pw => crypto.createHash('sha256').update(crypto.createHash('md5').update(pw, 'utf8').digest('hex'), 'utf8').digest('hex');
++
++// Hash password: portal Shopee memakai sha256(md5(pw)) — hex md5 dulu, lalu sha256.
++// Kalau ternyata Shopee mengubah skema, bisa diganti lewat env tanpa ubah kode.
++const PW_HASH = String(process.env.SHOPEE_PW_HASH || 'md5sha256').toLowerCase();
++function hashPw(pw) {
++  if (PW_HASH === 'plain') return String(pw);
++  if (PW_HASH === 'sha256') return crypto.createHash('sha256').update(String(pw), 'utf8').digest('hex');
++  return crypto.createHash('sha256').update(crypto.createHash('md5').update(String(pw), 'utf8').digest('hex'), 'utf8').digest('hex');
++}
++
+ const q = encodeURIComponent;
+ const partnerState = () => `${PARTNER}/?business_next=${q(PARTNER + '/login/auth')}&business_state=${q(PARTNER)}&business_client_id=${BUSINESS_CLIENT_ID}`;
+ const loginReferer = () => `${ACCOUNT}/authenticate/login/?lang=${LANG}&should_hide_back=true&state=${q(partnerState())}&client_id=${ACCOUNT_CLIENT_ID}&next=${q(PARTNER + '/account/login/auth')}`;
+@@ -122,13 +155,40 @@
+   return h;
+ }
+ 
+-async function account(jar, path, body, risk) {
++// Petakan balasan Shopee ke error yang bisa ditindaklanjuti.
++function classify(d, path) {
++  const msg = String(d.error_msg || d.msg || '');
++  const data = d.data || {};
++  if (data.captcha_required === true || /captcha/i.test(msg)) {
++    return new ShopeeError(
++      `Shopee minta captcha di ${path}. OTP tidak akan dikirim sampai captcha diselesaikan.`,
++      { status: 429, code: E_CAPTCHA, payload: d,
++        hint: 'Selesaikan captcha di browser (login manual sekali), lalu isi SHOPEE_CAPTCHA_SIGNATURE / SHOPEE_DEVICE_REPORT dari request yang sukses. Lihat documents/shopee-otp-audit/.' });
++  }
++  if (/device|risk|verify.*browser|unusual|mencurigakan|tidak dikenal/i.test(msg) || data.need_verify === true) {
++    return new ShopeeError(
++      `Shopee menolak karena device-check di ${path}: ${msg || 'perangkat tidak dipercaya'}`,
++      { status: 403, code: E_DEVICE, payload: d,
++        hint: 'Pakai device_id + telemetri dari browser yang sudah pernah login sukses (SHOPEE_DEVICE_ID, SHOPEE_DEVICE_REPORT).' });
++  }
++  if (/too many|terlalu banyak|frequent|rate/i.test(msg)) {
++    return new ShopeeError(`Shopee membatasi permintaan OTP: ${msg}`, { status: 429, code: E_RATE, payload: d });
++  }
++  return null;
++}
++
++async function account(jar, path, body, risk, { allowNullData = false, allowError = false } = {}) {
+   const r = await send(jar, 'POST', ACCOUNT + path, accountHeaders(jar, risk), JSON.stringify(body));
+   const d = parse(r, path);
+-  if ((d.data && d.data.captcha_required === true) || /captcha/i.test(String(d.error_msg || '')))
+-    throw new ShopeeError('Shopee minta captcha. Selesaikan dulu di browser lalu coba lagi.', { status: 429, code: d.error, payload: d });
+-  if (d.error !== 0 || d.data == null || typeof d.data !== 'object')
++  const cls = classify(d, path);
++  if (cls) throw cls;
++  if (d.error !== 0) {
++    if (allowError) return { error: d.error, data: d.data, raw: d };
+     throw new ShopeeError(`Shopee menolak di ${path} (error ${d.error}) ${d.error_msg || ''}`.trim(), { status: 400, code: d.error, payload: d });
++  }
++  if (d.data == null && !allowNullData) {
++    throw new ShopeeError(`Shopee membalas data kosong di ${path}`, { status: 502, code: d.error, payload: d });
++  }
+   return d.data;
+ }
+ 
+@@ -158,15 +218,21 @@
+   throw new ShopeeError('Redirect Shopee terlalu banyak', { status: 508 });
+ }
+ 
++// Ambil risk token dari layanan device-risk Shopee.
++// PENTING: body HARUS berisi telemetri. Versi lama mengirim `{}` -> Shopee
++// menganggap perangkat tanpa jejak, dan captcha hampir pasti muncul.
+ async function fingerprint(jar, deviceReport) {
+-  const h = { ...baseHeaders(), Origin: ACCOUNT, Referer: ACCOUNT + '/' };
+-  let body = '{}';
+-  if (deviceReport) { h['Content-Type'] = 'text/plain;charset=UTF-8'; h.szdet = String(now()); body = deviceReport; }
+-  else h['Content-Type'] = 'application/json';
++  const h = { ...baseHeaders(), Origin: ACCOUNT, Referer: ACCOUNT + '/', 'Content-Type': 'text/plain;charset=UTF-8', szdet: String(now()) };
++  const body = deviceReport || buildDeviceReport(DEVICE_ID);
+   const r = await send(jar, 'POST', FP_URL, h, body);
+   const d = parse(r, 'device-risk');
+   const tok = d.data && d.data.riskToken;
+-  if (d.code !== 0 || !tok) throw new ShopeeError('Layanan device-risk Shopee tidak memberi risk token', { status: 502, code: d.code, payload: d });
++  if (d.code !== 0 || !tok) {
++    throw new ShopeeError('Layanan device-risk Shopee tidak memberi risk token', {
++      status: 502, code: d.code, payload: d,
++      hint: 'Cek SHOPEE_DEVICE_REPORT / SHOPEE_DEVICE_ID. Tanpa risk token, send_otp tidak akan pernah jalan.',
++    });
++  }
+   return String(tok);
+ }
+ 
+@@ -195,31 +261,64 @@
+ }
+ 
+ // ---------- langkah publik ----------
+-async function requestOtp(phone, { password, channel, deviceReport } = {}) {
++async function requestOtp(phone, { password, channel, deviceReport, captchaSignature, deviceId } = {}) {
+   const e164 = parseMobile(phone).e164;
+   const jar = new Jar();
++  const trace = [];   // jejak langkah, dipakai audit & pesan error
++  const step = (name, extra = {}) => trace.push({ step: name, at: now(), ...extra });
++
+   await send(jar, 'GET', `${ACCOUNT}/login?lang=${LANG}`, { ...baseHeaders(), Accept: 'text/html' });
+-  const risk = await fingerprint(jar, deviceReport);
+-  await account(jar, EP.pwMigrate, { phone: e164 }, risk);
+-  // cek akun: balasan non-zero memang normal, jadi tidak divalidasi
+-  await send(jar, 'POST', ACCOUNT + EP.exists, accountHeaders(jar, risk), JSON.stringify({ phone: e164, password: password ? hashPw(password) : '' }));
+-  // password step
++  step('login_page', { cookies: jar.snapshot().map(c => c.name) });
++
++  const risk = await fingerprint(jar, deviceReport || process.env.SHOPEE_DEVICE_REPORT || undefined);
++  step('device_risk', { riskToken: risk.slice(0, 8) + '…' });
++
++  // 1) check_password_migrate — balasan non-zero NORMAL (akun tidak perlu migrasi).
++  //    Versi lama memakai account() yang melempar error di sini -> alur mati total.
++  const mig = await account(jar, EP.pwMigrate, { phone: e164 }, risk, { allowNullData: true, allowError: true });
++  step('check_password_migrate', { error: mig.error });
++
++  // 2) cek akun — balasan non-zero juga normal, jadi tidak divalidasi.
++  const ex = await send(jar, 'POST', ACCOUNT + EP.exists, accountHeaders(jar, risk), JSON.stringify({ phone: e164, password: password ? hashPw(password) : '' }));
++  try { step('check_account_exist', { error: parse(ex, EP.exists).error }); } catch { step('check_account_exist', { error: 'unparsed' }); }
++
++  // 3) langkah password
+   const pr = await send(jar, 'POST', ACCOUNT + EP.byPassword, accountHeaders(jar, risk),
+     JSON.stringify({ phone: e164, password: password ? hashPw(password) : '', security_device_fingerprint: risk }));
+   const pd = parse(pr, EP.byPassword);
++  const cls = classify(pd, EP.byPassword);
++  if (cls) throw cls;
+   let hasPassword = false;
+-  const needPw = new ShopeeError('Akun Shopee ini pakai password. Isi password dulu supaya OTP bisa dikirim.', { status: 400 });
++  const needPw = new ShopeeError('Akun Shopee ini pakai password. Isi password dulu supaya OTP bisa dikirim.', { status: 400, code: 'PASSWORD_REQUIRED' });
+   if (pd.error === NEED_OTP) { if (!password) throw needPw; hasPassword = true; }
+   else if (pd.error !== 0) {
+     if (pd.data && pd.data.toc_account && pd.data.toc_account.has_password === true) throw needPw;
+-    throw new ShopeeError(`Shopee menolak password sebelum kirim OTP (error ${pd.error})`, { status: 400, code: pd.error, payload: pd });
++    throw new ShopeeError(`Shopee menolak password sebelum kirim OTP (error ${pd.error}) ${pd.error_msg || ''}`.trim(), { status: 400, code: pd.error, payload: pd });
++  }
++  step('authenticate_by_password', { error: pd.error, hasPassword });
++
++  // 4) setelan OTP — kalau gagal, jangan matikan alur; pakai channel default.
++  let st = {};
++  try {
++    st = await account(jar, EP.otpSettings, { operation: OTP_OP, phone: e164, security_device_fingerprint: risk, support_session: false, supported_channels: [1, 2, 3, 5] }, risk, { allowNullData: true });
++  } catch (e) {
++    if (e.code === E_CAPTCHA || e.code === E_DEVICE) throw e;
++    step('get_otp_settings_failed', { error: e.message });
+   }
+-  const st = await account(jar, EP.otpSettings, { operation: OTP_OP, phone: e164, security_device_fingerprint: risk, support_session: false, supported_channels: [1, 2, 3, 5] }, risk);
+   const avail = (st.available_channel_list || []).filter(Number.isInteger);
+   const ch = channel != null ? Number(channel) : (Number.isInteger(st.default_channel) ? st.default_channel : 3);
+-  if (avail.length && !avail.includes(ch)) throw bad('Channel OTP yang diminta tidak tersedia');
+-  await account(jar, EP.sendOtp, { operation: OTP_OP, phone: e164, security_device_fingerprint: risk, support_session: false, supported_channels: [1, 2, 3, 5, 4], channel: ch, captcha_signature: '' }, risk);
+-  return { v: 1, phone: e164, channel: ch, channels: avail, risk, hasPassword, cookies: jar.snapshot(), at: now() };
++  if (avail.length && !avail.includes(ch)) throw bad(`Channel OTP ${ch} tidak tersedia (tersedia: ${avail.join(', ')})`);
++  step('otp_settings', { available: avail, chosen: ch });
++
++  // 5) kirim OTP. captcha_signature tidak lagi hardcode ''.
++  const sig = captchaSignature || process.env.SHOPEE_CAPTCHA_SIGNATURE || '';
++  const sent = await account(jar, EP.sendOtp, {
++    operation: OTP_OP, phone: e164, security_device_fingerprint: risk, support_session: false,
++    supported_channels: [1, 2, 3, 5, 4], channel: ch, captcha_signature: sig,
++  }, risk, { allowNullData: true });
++  step('send_otp', { channel: ch, captchaSignature: !!sig, data: sent });
++
++  return { v: 1, phone: e164, channel: ch, channels: avail, risk, hasPassword, cookies: jar.snapshot(), at: now(), trace, deviceId: deviceId || DEVICE_ID };
+ }
+ 
+ async function verifyOtp(ch, otp) {
+@@ -285,9 +384,55 @@
+   if (!session || session.v !== 1 || !session.renew) throw bad('Sesi Shopee belum ada, login OTP dulu');
+   const st = await accountAlive(session);
+   if (!st.alive) throw new ShopeeError('Sesi akun Shopee sudah habis, login OTP lagi', { status: 401, code: st.code || NOT_LOGIN });
+-  const ver = { nonce: session.renew.nonce, clientId: session.renew.clientId, risk: session.renew.risk, cookies: session.cookies, merchants: session.merchants };
++  // Risk token berumur pendek: ambil yang baru, jangan pakai token dari login OTP
++  // yang bisa sudah kedaluwarsa (dulu ini bikin refresh gagal setelah beberapa jam).
++  const jar0 = new Jar(session.cookies);
++  let risk = session.renew.risk;
++  try { risk = await fingerprint(jar0, process.env.SHOPEE_DEVICE_REPORT || undefined); } catch { /* pakai token lama */ }
++  const ver = { nonce: session.renew.nonce, clientId: session.renew.clientId, risk, cookies: jar0.snapshot(), merchants: session.merchants };
+   const { jar, cred } = await completeBase(ver, session.merchant.id);
+-  return { ...session, cookies: jar.snapshot(), token: cred.token, expires_at: cred.expires_at || session.expires_at };
++  return { ...session, cookies: jar.snapshot(), token: cred.token, expires_at: cred.expires_at || session.expires_at, renew: { ...session.renew, risk } };
++}
++
++// ---------- diagnostik (dipakai audit & endpoint /api/shopee/diagnose) ----------
++// Menjalankan alur sampai SEBELUM send_otp, jadi tidak memicu OTP / rate limit.
++async function diagnose(phone, { password, deviceReport } = {}) {
++  const e164 = parseMobile(phone).e164;
++  const out = { phone: e164, deviceId: DEVICE_ID, ua: UA, steps: [] };
++  const jar = new Jar();
++  const push = (step, ok, detail) => out.steps.push({ step, ok, detail });
++  let risk = null;
++  try {
++    const r = await send(jar, 'GET', `${ACCOUNT}/login?lang=${LANG}`, { ...baseHeaders(), Accept: 'text/html' });
++    push('login_page', r.status === 200, { status: r.status, cookies: jar.snapshot().map(c => c.name) });
++  } catch (e) { push('login_page', false, { message: e.message }); return out; }
++  try {
++    risk = await fingerprint(jar, deviceReport || process.env.SHOPEE_DEVICE_REPORT || undefined);
++    out.riskToken = risk.slice(0, 8) + '…';
++    push('device_risk', true, { riskToken: out.riskToken });
++  } catch (e) { push('device_risk', false, { message: e.message, code: e.code, hint: e.hint }); return out; }
++  try {
++    const mig = await account(jar, EP.pwMigrate, { phone: e164 }, risk, { allowNullData: true, allowError: true });
++    push('check_password_migrate', true, { error: mig.error, note: 'error != 0 normal' });
++  } catch (e) { push('check_password_migrate', false, { message: e.message, code: e.code }); }
++  try {
++    const pr = await send(jar, 'POST', ACCOUNT + EP.byPassword, accountHeaders(jar, risk),
++      JSON.stringify({ phone: e164, password: password ? hashPw(password) : '', security_device_fingerprint: risk }));
++    const pd = parse(pr, EP.byPassword);
++    const cls = classify(pd, EP.byPassword);
++    push('authenticate_by_password', !cls && (pd.error === 0 || pd.error === NEED_OTP), { error: pd.error, error_msg: pd.error_msg, captcha: !!cls && cls.code === E_CAPTCHA });
++  } catch (e) { push('authenticate_by_password', false, { message: e.message, code: e.code }); }
++  try {
++    const st = await account(jar, EP.otpSettings, { operation: OTP_OP, phone: e164, security_device_fingerprint: risk, support_session: false, supported_channels: [1, 2, 3, 5] }, risk, { allowNullData: true });
++    push('get_otp_settings', true, { available: st.available_channel_list, default: st.default_channel });
++  } catch (e) { push('get_otp_settings', false, { message: e.message, code: e.code, hint: e.hint }); }
++  out.verdict = out.steps.every(s => s.ok) ? 'SIAP kirim OTP' : 'ADA HAMBATAN — lihat langkah yang gagal';
++  return out;
+ }
+ 
+-module.exports = { requestOtp, verifyOtp, completeLogin, refreshSession, accountAlive, usable, singleMerchant, ShopeeError, _Jar: Jar, _readCredential: readCredential, _parseMobile: parseMobile };
++module.exports = {
++  requestOtp, verifyOtp, completeLogin, refreshSession, accountAlive, diagnose,
++  usable, singleMerchant, ShopeeError, hashPw,
++  E_CAPTCHA, E_DEVICE, E_RATE,
++  _Jar: Jar, _readCredential: readCredential, _parseMobile: parseMobile,
++};
+diff -ruN '--exclude=node_modules' '--exclude=data' '--exclude=package-lock.json' before/orig/package.json vincent.shoppe-main/package.json
+--- before/orig/package.json	2026-10-29 05:59:54.000000000 +0000
++++ vincent.shoppe-main/package.json	2026-11-01 02:18:43.139521881 +0000
+@@ -8,7 +8,8 @@
+   },
+   "scripts": {
+     "start": "node app.js",
+-    "test": "node test/offline.test.js && node test/public.test.js && node test/config.test.js && node test/v1.test.js"
++    "test": "node test/otp.test.js && node test/otp-http.test.js && node test/offline.test.js && node test/public.test.js && node test/config.test.js && node test/v1.test.js",
++    "test:otp": "node test/otp.test.js && node test/otp-http.test.js"
+   },
+   "dependencies": {
+     "axios": "^1.6.0",
+diff -ruN '--exclude=node_modules' '--exclude=data' '--exclude=package-lock.json' before/orig/test/mock.js vincent.shoppe-main/test/mock.js
+--- before/orig/test/mock.js	2026-10-29 05:59:54.000000000 +0000
++++ vincent.shoppe-main/test/mock.js	2026-11-01 02:15:45.098199288 +0000
+@@ -3,6 +3,13 @@
+ const axios = require('axios');
+ 
+ const state = { txs: [], listCalls: 0, killToken: null, tokenSeq: 1, otpOk: '1234' };
++// migrateError: Shopee membalas error != 0 untuk akun yang TIDAK perlu migrasi password.
++// Ini perilaku asli dan dulu mematikan alur sebelum send_otp.
++state.migrateError = 0;
++// captcha: true -> Shopee membalas captcha_required di send_otp (OTP tidak dikirim).
++state.captcha = false;
++state.sendOtpCalls = 0;
++state.lastSendOtp = null;
+ state.goSeq = 1;
+ const jwt = (tok, uid) => 'h.' + Buffer.from(JSON.stringify({ token: tok, userid: uid, exp: Math.floor(Date.now() / 1000) + 86400 })).toString('base64url') + '.s';
+ const J = (o, extra = {}) => ({ status: 200, headers: { ...extra }, data: JSON.stringify(o) });
+@@ -12,11 +19,20 @@
+   const body = typeof cfg.data === 'string' && cfg.data.startsWith('{') ? JSON.parse(cfg.data) : {};
+   if (u.host === 'partner.business.accounts.shopee.co.id') {
+     if (p === '/login') return { status: 200, headers: { 'set-cookie': ['csrftoken=csrf1; Path=/'] }, data: '<html>' };
+-    if (p.endsWith('check_password_migrate')) return J({ error: 0, data: {} });
++    if (p.endsWith('check_password_migrate')) return J({ error: state.migrateError, data: state.migrateError ? null : {} });
+     if (p.endsWith('check_account_exist_by_password')) return J({ error: 1, data: null });
+-    if (p.endsWith('authenticate_toc_by_password')) return J({ error: 0, data: {} });
++    if (p.endsWith('authenticate_toc_by_password')) {
++      // needPassword: akun memakai password -> Shopee membalas NEED_OTP (48401102)
++      if (state.needPassword) return J({ error: 48401102, data: { toc_account: { has_password: true } } });
++      return J({ error: 0, data: {} });
++    }
+     if (p.endsWith('get_otp_settings')) return J({ error: 0, data: { available_channel_list: [1, 3], default_channel: 3 } });
+-    if (p.endsWith('send_otp')) return J({ error: 0, data: {} });
++    if (p.endsWith('send_otp')) {
++      state.sendOtpCalls++;
++      state.lastSendOtp = body;
++      if (state.captcha) return J({ error: 0, data: { captcha_required: true }, error_msg: 'captcha required' });
++      return J({ error: 0, data: {} });
++    }
+     if (p.endsWith('verify_otp')) {
+       assert.strictEqual(body.phone, '(+62) 812 3456 789');
+       return body.otp === state.otpOk ? J({ error: 0, data: { otp_token: 'OT' } }) : J({ error: 1, error_msg: 'wrong otp', data: null });
+@@ -26,7 +42,11 @@
+     if (p.endsWith('login_toc')) return J({ error: 0, data: { nonce: 'CODE' } });
+     if (p.endsWith('login_status')) return J({ error: state.accountDead ? 48500102 : 0, data: {} });
+   }
+-  if (u.host === 'df.infra.sz.shopee.co.id') return J({ code: 0, data: { riskToken: 'RISK' } });
++  if (u.host === 'df.infra.sz.shopee.co.id') {
++    // Telemetri kosong = perangkat tanpa jejak -> Shopee menolak memberi risk token.
++    if (!cfg.data || cfg.data === '{}') return J({ code: 40001, data: null });
++    return J({ code: 0, data: { riskToken: 'RISK' } });
++  }
+   if (u.host === 'partner.shopee.co.id') {
+     if (p === '/account/login/auth' && !u.searchParams.get('hop')) return { status: 302, headers: { location: '/account/login/auth?hop=1' }, data: '' };
+     if (p === '/account/login/auth') return { status: 200, headers: {}, data: 'ok' };
+diff -ruN '--exclude=node_modules' '--exclude=data' '--exclude=package-lock.json' before/orig/test/otp-http.test.js vincent.shoppe-main/test/otp-http.test.js
+--- before/orig/test/otp-http.test.js	1970-01-01 00:00:00.000000000 +0000
++++ vincent.shoppe-main/test/otp-http.test.js	2026-11-01 02:18:39.420494167 +0000
+@@ -0,0 +1,60 @@
++// Tes integrasi HTTP untuk alur OTP ShopeePay (tanpa views/, tanpa akun asli).
++// Memastikan endpoint /api/shopee/otp & /api/shopee/diagnose berperilaku benar
++// dan error captcha/device sampai ke klien dengan code + hint.
++process.env.SESSION_SECRET = 'rahasia-test-rahasia-test-rahasia';
++process.env.ADMIN_PASSWORD = 'pw-test';
++// config.js di repo ini mengisi ADMIN_PASSWORD dan nilainya MENANG atas env.
++const PW = require('../config.js').ADMIN_PASSWORD || 'pw-test';
++process.env.SHOPEE_DEVICE_ID = 'device-tetap-untuk-tes';
++process.env.DB_PATH = require('path').join(require('fs').mkdtempSync(require('path').join(require('os').tmpdir(), 'vp-otp-')), 'db.json');
++
++const assert = require('assert');
++const { state } = require('./mock');
++const app = require('../app');
++const srv = app.listen(0);
++const base = () => 'http://127.0.0.1:' + srv.address().port;
++let cookie = '';
++const call = async (m, u, b) => {
++  const r = await fetch(base() + u, { method: m, headers: { 'Content-Type': 'application/json', cookie }, body: b ? JSON.stringify(b) : undefined });
++  const sc = r.headers.get('set-cookie'); if (sc) cookie = sc.split(';')[0];
++  return { s: r.status, ...(await r.json().catch(() => ({}))) };
++};
++let n = 0; const ok = (c, m) => { assert.ok(c, m); console.log('  ok', ++n, m); };
++
++(async () => {
++  let r = await call('POST', '/api/admin/login', { password: PW });
++  ok(r.success, 'login admin');
++
++  // 1. OTP sukses + trace
++  state.migrateError = 1; state.sendOtpCalls = 0;
++  r = await call('POST', '/api/shopee/otp', { phone: '0812-3456-789', password: 'rahasia' });
++  ok(r.success && r.challenge, 'POST /api/shopee/otp sukses');
++  ok(state.sendOtpCalls === 1, 'send_otp benar-benar dipanggil ke Shopee');
++  ok(Array.isArray(r.trace) && r.trace.some(s => s.step === 'send_otp'), 'respons membawa trace langkah');
++  ok(!JSON.stringify(r.trace).includes('rahasia'), 'trace tidak membocorkan password');
++
++  // 2. captcha -> 429 + code + hint
++  state.captcha = true;
++  r = await call('POST', '/api/shopee/otp', { phone: '0812-3456-789', password: 'rahasia' });
++  ok(r.s === 429 && r.code === 'CAPTCHA_REQUIRED', 'captcha -> HTTP 429 + code CAPTCHA_REQUIRED');
++  ok(typeof r.hint === 'string' && r.hint.length > 10, 'respons captcha membawa hint perbaikan');
++  state.captcha = false;
++
++  // 3. diagnose tidak memicu OTP
++  state.sendOtpCalls = 0;
++  r = await call('POST', '/api/shopee/diagnose', { phone: '0812-3456-789', password: 'rahasia' });
++  ok(r.success && Array.isArray(r.steps), 'POST /api/shopee/diagnose mengembalikan langkah');
++  ok(state.sendOtpCalls === 0, 'diagnose tidak memicu send_otp');
++  ok(r.steps.some(s => s.step === 'device_risk' && s.ok), 'diagnose: device_risk OK');
++  ok(typeof r.verdict === 'string', 'diagnose memberi verdict');
++
++  // 4. verify penuh lewat HTTP
++  state.migrateError = 0;
++  r = await call('POST', '/api/shopee/otp', { phone: '0812-3456-789', password: 'rahasia' });
++  const ch = r.challenge;
++  r = await call('POST', '/api/shopee/verify', { challenge: ch, otp: '1234' });
++  ok(r.success && r.merchant === 'Toko Uji' && r.token, 'verify OTP -> token merchant');
++
++  console.log('\nSEMUA TES HTTP OTP LULUS (' + n + ')');
++  srv.close(); process.exit(0);
++})().catch(e => { console.error('GAGAL:', e); srv.close(); process.exit(1); });
+diff -ruN '--exclude=node_modules' '--exclude=data' '--exclude=package-lock.json' before/orig/test/otp.test.js vincent.shoppe-main/test/otp.test.js
+--- before/orig/test/otp.test.js	1970-01-01 00:00:00.000000000 +0000
++++ vincent.shoppe-main/test/otp.test.js	2026-11-01 02:15:41.264170911 +0000
+@@ -0,0 +1,83 @@
++// Tes regresi khusus alur request OTP ShopeePay (tanpa akun asli, tanpa view).
++// Fokus: memastikan send_otp BENAR-BENAR dipanggil, dan hambatan captcha/device
++// dilaporkan dengan kode yang bisa ditindaklanjuti.
++//
++// Jalankan: node test/otp.test.js
++process.env.SESSION_SECRET = 'rahasia-test-rahasia-test-rahasia';
++process.env.SHOPEE_DEVICE_ID = 'device-tetap-untuk-tes';
++
++const assert = require('assert');
++const { state } = require('./mock');          // memasang adapter axios tiruan
++const sauth = require('../lib/shopeeAuth');
++const { buildDeviceReport, DEVICE_ID } = require('../lib/device');
++
++let n = 0;
++const ok = (c, m) => { assert.ok(c, m); console.log('  ok', ++n, m); };
++
++(async () => {
++  // ---------- 1. device identity ----------
++  const rep = JSON.parse(buildDeviceReport());
++  ok(rep.device_id === DEVICE_ID && rep.device_id === 'device-tetap-untuk-tes', 'device_id stabil dari env, bukan acak');
++  ok(Array.isArray(rep.events) && rep.events.length > 0, 'body telemetri terisi (bukan {})');
++
++  // ---------- 2. check_password_migrate error != 0 tidak boleh mematikan alur ----------
++  state.migrateError = 1;   // akun tidak perlu migrasi password -> Shopee balas error != 0
++  state.sendOtpCalls = 0;
++  let ch = await sauth.requestOtp('0812-3456-789', { password: 'rahasia' });
++  ok(state.sendOtpCalls === 1, 'send_otp tetap dipanggil walau check_password_migrate error != 0');
++  ok(ch.channel === 3 && ch.channels.includes(3), 'channel OTP dipilih dari get_otp_settings');
++  ok(ch.trace.some(s => s.step === 'send_otp'), 'trace mencatat langkah send_otp');
++  ok(ch.trace.some(s => s.step === 'check_password_migrate' && s.error === 1), 'trace mencatat error migrate apa adanya');
++
++  // ---------- 3. captcha_signature diteruskan, tidak hardcode '' ----------
++  ok(state.lastSendOtp.captcha_signature === '', 'default captcha_signature kosong');
++  state.sendOtpCalls = 0;
++  await sauth.requestOtp('0812-3456-789', { password: 'rahasia', captchaSignature: 'SIG-XYZ' });
++  ok(state.lastSendOtp.captcha_signature === 'SIG-XYZ', 'captcha_signature dari parameter diteruskan ke send_otp');
++
++  // ---------- 4. security_device_fingerprint terisi di setiap langkah ----------
++  ok(state.lastSendOtp.security_device_fingerprint === 'RISK', 'send_otp membawa risk token perangkat');
++  ok(state.lastSendOtp.phone === '628123456789', 'nomor dikirim sebagai 62...');
++
++  // ---------- 5. captcha dari Shopee -> error CAPTCHA_REQUIRED + hint ----------
++  state.captcha = true;
++  let err = null;
++  try { await sauth.requestOtp('0812-3456-789', { password: 'rahasia' }); } catch (e) { err = e; }
++  ok(err && err.code === sauth.E_CAPTCHA, 'captcha_required dipetakan ke CAPTCHA_REQUIRED');
++  ok(err && err.status === 429 && /captcha/i.test(err.message), 'status 429 + pesan jelas soal captcha');
++  ok(err && typeof err.hint === 'string' && err.hint.length > 10, 'ada hint langkah perbaikan');
++  state.captcha = false;
++
++  // ---------- 6. password salah / tidak diisi ----------
++  state.migrateError = 0;
++  const origByPw = state.byPasswordError;
++  // mock membalas error 0 untuk byPassword; simulasikan NEED_OTP lewat flag
++  state.needPassword = true;
++  err = null;
++  try { await sauth.requestOtp('0812-3456-789', {}); } catch (e) { err = e; }
++  ok(err && err.code === 'PASSWORD_REQUIRED', 'akun ber-password tanpa password -> PASSWORD_REQUIRED');
++  state.needPassword = false;
++
++  // ---------- 7. hash password ----------
++  const crypto = require('crypto');
++  const expect = crypto.createHash('sha256').update(crypto.createHash('md5').update('rahasia', 'utf8').digest('hex'), 'utf8').digest('hex');
++  ok(sauth.hashPw('rahasia') === expect, 'hash password = sha256(md5(pw)) seperti portal Shopee');
++
++  // ---------- 8. diagnose tidak memanggil send_otp ----------
++  state.sendOtpCalls = 0;
++  const d = await sauth.diagnose('0812-3456-789', { password: 'rahasia' });
++  ok(state.sendOtpCalls === 0, 'diagnose berhenti sebelum send_otp (tidak memicu OTP/rate limit)');
++  ok(d.steps.some(s => s.step === 'device_risk' && s.ok), 'diagnose melaporkan device_risk OK');
++  ok(typeof d.verdict === 'string', 'diagnose memberi verdict');
++
++  // ---------- 9. verifikasi OTP penuh ----------
++  ch = await sauth.requestOtp('0812-3456-789', { password: 'rahasia' });
++  const ver = await sauth.verifyOtp(ch, '1234');
++  ok(ver.merchants.length === 1 && ver.merchants[0].name === 'Toko Uji', 'verify OTP mengembalikan daftar merchant');
++  const ses = await sauth.completeLogin(ver);
++  ok(ses.token.startsWith('B:LIVE'), 'completeLogin menghasilkan token merchant');
++  ok(ses.renew && ses.renew.risk === 'RISK', 'sesi menyimpan data renew untuk perpanjangan tanpa OTP');
++
++  console.log('\nSEMUA TES OTP LULUS (' + n + ')');
++  process.exit(0);
++})().catch(e => { console.error('GAGAL:', e); process.exit(1); });
