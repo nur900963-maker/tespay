@@ -1,0 +1,1887 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a1f1c">
+<title>Vincent Pay — Dashboard QRIS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   Vincent Pay — design tokens
+   Palet: deep teal + coral (BUKAN indigo/violet seperti referensi)
+   ============================================================ */
+:root{
+  --ink:#0a1f1c;
+  --ink-2:#123a34;
+  --brand:#0f766e;
+  --brand-2:#14b8a6;
+  --brand-soft:#e6f4f1;
+  --accent:#ff7a45;
+  --accent-soft:#fff0e9;
+  --bg:#f5f4ef;
+  --card:#ffffff;
+  --line:#e4e2d9;
+  --line-2:#efeee7;
+  --muted:#6d7b77;
+  --muted-2:#93a09c;
+  --ok:#0f9d58;
+  --warn:#d97706;
+  --err:#dc2626;
+  --r:18px;
+  --r-sm:12px;
+  --shadow:0 1px 2px rgba(10,31,28,.05), 0 10px 30px -18px rgba(10,31,28,.35);
+  --shadow-lg:0 2px 4px rgba(10,31,28,.05), 0 24px 60px -28px rgba(10,31,28,.45);
+  --mono:'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans:'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--sans); font-size:14px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(circle at 12% -10%, #e9f3f0 0%, transparent 45%),
+                   radial-gradient(circle at 92% 4%, #fdf0e9 0%, transparent 38%);
+  background-repeat:no-repeat;
+}
+h1,h2,h3,h4,p{margin:0}
+button{font-family:inherit; cursor:pointer}
+input,select,textarea{font-family:inherit; font-size:14px}
+a{color:var(--brand); text-decoration:none}
+::selection{background:#bff0e6; color:var(--ink)}
+
+/* ---------- topbar ---------- */
+.topbar{
+  position:fixed; inset:0 0 auto 0; z-index:60; height:62px;
+  display:flex; align-items:center;
+  background:rgba(255,255,255,.82);
+  backdrop-filter:saturate(180%) blur(14px);
+  -webkit-backdrop-filter:saturate(180%) blur(14px);
+  border-bottom:1px solid var(--line);
+}
+.topbar-inner{
+  width:100%; max-width:880px; margin:0 auto; padding:0 18px;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+}
+.brand{display:flex; align-items:center; gap:10px; min-width:0}
+.brand-mark{
+  width:34px; height:34px; border-radius:11px; flex:0 0 auto;
+  background:linear-gradient(145deg, var(--brand-2), var(--brand) 55%, var(--ink));
+  display:grid; place-items:center; color:#fff; font-weight:800; font-size:15px;
+  box-shadow:0 6px 16px -8px rgba(15,118,110,.9);
+  letter-spacing:-.5px;
+}
+.brand-name{font-size:15px; font-weight:800; letter-spacing:-.3px; white-space:nowrap}
+.brand-sub{font-size:10.5px; color:var(--muted-2); font-weight:600; letter-spacing:.06em; text-transform:uppercase; line-height:1}
+.topbar-right{display:flex; align-items:center; gap:8px}
+.pill{
+  display:inline-flex; align-items:center; gap:6px;
+  height:28px; padding:0 10px; border-radius:999px;
+  font-size:11px; font-weight:700; letter-spacing:.01em;
+  background:#fff; border:1px solid var(--line); color:var(--muted);
+  white-space:nowrap;
+}
+.pill .dot{width:6px; height:6px; border-radius:50%; background:var(--muted-2); flex:0 0 auto}
+.pill.on{background:var(--brand-soft); border-color:#c9e9e2; color:#0b5d55}
+.pill.on .dot{background:var(--ok); box-shadow:0 0 0 3px rgba(15,157,88,.14)}
+.pill.off{background:#fdf1f1; border-color:#f6d9d9; color:#a33}
+.pill.off .dot{background:var(--err)}
+.pill.hide-sm{display:none}
+@media(min-width:560px){ .pill.hide-sm{display:inline-flex} }
+.icon-btn{
+  width:36px; height:36px; border-radius:11px; border:1px solid var(--line);
+  background:#fff; color:var(--ink); display:grid; place-items:center;
+  transition:.18s ease;
+}
+.icon-btn:hover{background:var(--brand-soft); border-color:#c9e9e2; color:var(--brand)}
+.icon-btn svg{width:17px; height:17px}
+
+/* ---------- layout ---------- */
+main{max-width:1120px; margin:0 auto; padding:86px 18px 40px}
+@media(max-width:520px){ main{padding:78px 14px 32px} }
+.topbar-inner{max-width:1120px}
+
+/* ---------- hero ---------- */
+.hero{
+  position:relative; overflow:hidden;
+  border-radius:24px; padding:34px 26px 26px;
+  background:
+    radial-gradient(120% 140% at 88% -20%, rgba(20,184,166,.55) 0%, transparent 55%),
+    radial-gradient(90% 120% at 0% 110%, rgba(255,122,69,.30) 0%, transparent 55%),
+    linear-gradient(160deg, #0c2a26 0%, #0a1f1c 60%, #071614 100%);
+  color:#fff; box-shadow:var(--shadow-lg);
+  text-align:center;
+}
+.hero::after{
+  content:''; position:absolute; inset:0; pointer-events:none; opacity:.35;
+  background-image:linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
+                   linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+  background-size:34px 34px;
+  mask-image:radial-gradient(circle at 50% 0%, #000 0%, transparent 72%);
+  -webkit-mask-image:radial-gradient(circle at 50% 0%, #000 0%, transparent 72%);
+}
+.hero > *{position:relative; z-index:1}
+.hero-mark{
+  width:56px; height:56px; margin:0 auto 14px; border-radius:18px;
+  background:linear-gradient(150deg, #2dd4bf, #0f766e 60%, #0a1f1c);
+  display:grid; place-items:center; font-weight:800; font-size:22px; letter-spacing:-1px;
+  box-shadow:0 14px 34px -14px rgba(45,212,191,.85), inset 0 1px 0 rgba(255,255,255,.35);
+}
+.hero h1{font-size:clamp(21px,4.6vw,29px); font-weight:800; letter-spacing:-.7px; line-height:1.2}
+.hero p.sub{margin-top:8px; font-size:12.5px; color:#a9c6c0; font-weight:500; max-width:430px; margin-left:auto; margin-right:auto}
+.accent-line{
+  width:56px; height:3px; border-radius:99px; margin:16px auto 0;
+  background:linear-gradient(90deg, var(--accent), #ffb08a);
+  box-shadow:0 0 18px rgba(255,122,69,.6);
+}
+.search-wrap{position:relative; max-width:400px; margin:22px auto 0}
+.search-wrap svg{
+  position:absolute; left:14px; top:50%; transform:translateY(-50%);
+  width:16px; height:16px; color:#7f9a95; pointer-events:none;
+}
+.search-input{
+  width:100%; height:44px; padding:0 14px 0 40px;
+  border-radius:13px; border:1px solid rgba(255,255,255,.16);
+  background:rgba(255,255,255,.09); color:#fff; font-size:13px; font-weight:500;
+  outline:none; transition:.2s;
+}
+.search-input::placeholder{color:#8aa5a0}
+.search-input:focus{background:rgba(255,255,255,.14); border-color:rgba(45,212,191,.6); box-shadow:0 0 0 4px rgba(20,184,166,.16)}
+.hero-stats{
+  display:grid; grid-template-columns:repeat(3,1fr); gap:8px;
+  margin-top:22px; padding-top:18px; border-top:1px solid rgba(255,255,255,.10);
+}
+.hstat{text-align:center; min-width:0}
+.hstat .k{font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:#7f9a95; font-weight:700}
+.hstat .v{font-size:12.5px; font-weight:700; margin-top:3px; color:#e8f5f2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.hstat .v.ok{color:#5eead4}
+.hstat .v.bad{color:#ffb4a0}
+
+/* ---------- section ---------- */
+.section{margin-top:34px}
+.section-head{display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-bottom:14px; padding:0 2px}
+.section-head .lbl{font-size:10px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--brand)}
+.section-head h2{font-size:17px; font-weight:800; letter-spacing:-.4px; margin-top:2px}
+.section-head .count{
+  font-size:11px; font-weight:700; color:var(--muted);
+  background:#fff; border:1px solid var(--line); border-radius:999px; padding:3px 9px; white-space:nowrap;
+}
+.section-desc{font-size:12.5px; color:var(--muted); margin:-6px 2px 14px; max-width:640px}
+
+/* ---------- endpoint card ---------- */
+.card{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--r);
+  box-shadow:var(--shadow); overflow:hidden; margin-bottom:10px;
+  transition:border-color .18s, box-shadow .18s, transform .18s;
+}
+.card:hover{border-color:#d3e7e2; box-shadow:0 2px 4px rgba(10,31,28,.05), 0 18px 40px -26px rgba(10,31,28,.5)}
+.card.open{border-color:#bfe3db; box-shadow:0 2px 4px rgba(10,31,28,.05), 0 22px 50px -30px rgba(15,118,110,.6)}
+.card-head{
+  display:flex; align-items:center; gap:11px; width:100%;
+  padding:14px 15px; background:none; border:0; text-align:left; color:inherit;
+}
+.method{
+  flex:0 0 auto; font-family:var(--mono); font-size:9.5px; font-weight:700; letter-spacing:.06em;
+  padding:4px 7px; border-radius:7px; border:1px solid transparent;
+}
+.method.post{background:var(--brand-soft); color:#0b5d55; border-color:#c9e9e2}
+.method.get{background:#eef2ff; color:#3b4fa8; border-color:#dbe2fb}
+.method.del{background:#fdeeee; color:#a33; border-color:#f6d9d9}
+.card-title{min-width:0; flex:1}
+.card-title .p{font-family:var(--mono); font-size:12px; font-weight:600; color:var(--ink); letter-spacing:-.2px; overflow-wrap:anywhere}
+.card-title .t{font-size:11px; color:var(--muted); margin-top:1px; font-weight:500}
+.chev{flex:0 0 auto; width:22px; height:22px; color:var(--muted-2); transition:transform .22s}
+.card.open .chev{transform:rotate(180deg); color:var(--brand)}
+.card-body{display:none; padding:0 15px 15px; border-top:1px dashed var(--line-2)}
+.card.open .card-body{display:block; animation:slide .22s ease}
+@keyframes slide{from{opacity:0; transform:translateY(-4px)} to{opacity:1; transform:none}}
+.card-desc{font-size:12.5px; color:var(--muted); padding:12px 0 2px; line-height:1.6}
+.fields{display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:12px}
+@media(max-width:560px){ .fields{grid-template-columns:1fr} }
+.field{min-width:0}
+.field.full{grid-column:1/-1}
+.field label{display:block; font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); margin-bottom:5px}
+.field label .req{color:var(--accent)}
+.field input,.field select{
+  width:100%; height:38px; padding:0 11px; border-radius:10px;
+  border:1px solid var(--line); background:#fcfcfa; color:var(--ink);
+  outline:none; transition:.16s; font-size:13px;
+}
+.field input:focus,.field select:focus{border-color:var(--brand-2); background:#fff; box-shadow:0 0 0 3px rgba(20,184,166,.13)}
+.field input::placeholder{color:#b3bdb9}
+.actions{display:flex; flex-wrap:wrap; gap:8px; margin-top:13px; align-items:center}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  height:38px; padding:0 15px; border-radius:11px; border:1px solid transparent;
+  font-size:12.5px; font-weight:700; letter-spacing:.01em; transition:.16s;
+}
+.btn svg{width:14px; height:14px}
+.btn-primary{background:linear-gradient(160deg, var(--brand-2), var(--brand)); color:#fff; box-shadow:0 8px 20px -12px rgba(15,118,110,.95)}
+.btn-primary:hover{filter:brightness(1.06); transform:translateY(-1px)}
+.btn-primary:active{transform:none}
+.btn-primary:disabled{opacity:.55; cursor:not-allowed; transform:none; filter:none}
+.btn-ghost{background:#fff; border-color:var(--line); color:var(--ink)}
+.btn-ghost:hover{background:var(--brand-soft); border-color:#c9e9e2; color:#0b5d55}
+.btn-accent{background:var(--accent-soft); border-color:#ffd9c9; color:#b8451c}
+.btn-accent:hover{background:#ffe4d8}
+.btn-sm{height:32px; padding:0 11px; font-size:11.5px; border-radius:9px}
+.spin{width:13px; height:13px; border-radius:50%; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* ---------- response ---------- */
+.resp{margin-top:12px; display:none}
+.resp.show{display:block; animation:slide .2s ease}
+.resp-bar{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  font-size:10.5px; font-weight:700; color:var(--muted); margin-bottom:6px;
+}
+.tag{font-family:var(--mono); font-size:10px; font-weight:700; padding:2px 7px; border-radius:6px}
+.tag.s2{background:var(--brand-soft); color:#0b5d55}
+.tag.s4{background:#fdf3e6; color:#a35c00}
+.tag.s5{background:#fdeeee; color:#a33}
+.resp pre{
+  margin:0; padding:12px 13px; border-radius:12px; background:#0a1f1c; color:#c9e8e1;
+  font-family:var(--mono); font-size:11.5px; line-height:1.6;
+  max-height:300px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere;
+  border:1px solid #123a34;
+}
+.resp pre::-webkit-scrollbar{width:8px; height:8px}
+.resp pre::-webkit-scrollbar-thumb{background:#2a4f48; border-radius:9px}
+
+/* ---------- alert / hint ---------- */
+.alert{
+  display:flex; gap:10px; padding:11px 12px; border-radius:12px; margin-top:11px;
+  font-size:12px; line-height:1.55; border:1px solid;
+}
+.alert .ico{flex:0 0 auto; width:16px; height:16px; margin-top:1px}
+.alert b{display:block; font-size:11.5px; margin-bottom:2px; letter-spacing:.01em}
+.alert.err{background:#fdf1f1; border-color:#f6d9d9; color:#8f2b2b}
+.alert.warn{background:#fdf7ea; border-color:#f3e2bd; color:#8a5a08}
+.alert.ok{background:var(--brand-soft); border-color:#c9e9e2; color:#0b5d55}
+.alert code{font-family:var(--mono); font-size:11px; background:rgba(0,0,0,.05); padding:1px 4px; border-radius:4px}
+
+/* ---------- OTP stepper ---------- */
+.flow{background:var(--card); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); overflow:hidden; margin-bottom:12px}
+.flow-head{padding:16px 16px 0}
+.flow-head .lbl{font-size:10px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--accent)}
+.flow-head h3{font-size:15.5px; font-weight:800; letter-spacing:-.3px; margin-top:3px}
+.flow-head p{font-size:12px; color:var(--muted); margin-top:5px; line-height:1.6}
+.steps{padding:16px}
+.step{position:relative; padding-left:38px; padding-bottom:18px}
+.step:last-child{padding-bottom:0}
+.step::before{
+  content:''; position:absolute; left:13px; top:26px; bottom:0; width:2px;
+  background:var(--line-2);
+}
+.step:last-child::before{display:none}
+.step.done::before{background:#bfe3db}
+.step-num{
+  position:absolute; left:0; top:0; width:28px; height:28px; border-radius:50%;
+  display:grid; place-items:center; font-size:11.5px; font-weight:800;
+  background:#f2f1ea; color:var(--muted-2); border:2px solid var(--bg);
+  transition:.2s;
+}
+.step.active .step-num{background:linear-gradient(160deg,var(--brand-2),var(--brand)); color:#fff; box-shadow:0 0 0 4px rgba(20,184,166,.16)}
+.step.done .step-num{background:var(--brand-soft); color:#0b5d55; border-color:#c9e9e2}
+.step-title{font-size:12.5px; font-weight:800; letter-spacing:-.1px; padding-top:4px}
+.step-title span{font-weight:600; color:var(--muted-2); font-size:11px; margin-left:6px}
+.step-body{margin-top:9px}
+.step-body .fields{margin-top:0}
+.step.locked{opacity:.5; pointer-events:none}
+
+/* trace chips */
+.trace{display:flex; flex-wrap:wrap; gap:5px; margin-top:10px}
+.chip{
+  display:inline-flex; align-items:center; gap:5px;
+  font-family:var(--mono); font-size:10px; font-weight:600;
+  padding:3px 7px; border-radius:7px; background:#f4f3ec; color:var(--muted);
+  border:1px solid var(--line-2);
+}
+.chip .d{width:5px; height:5px; border-radius:50%; background:var(--muted-2)}
+.chip.ok{background:var(--brand-soft); color:#0b5d55; border-color:#c9e9e2}
+.chip.ok .d{background:var(--ok)}
+.chip.bad{background:#fdeeee; color:#a33; border-color:#f6d9d9}
+.chip.bad .d{background:var(--err)}
+
+/* token box */
+.tokenbox{
+  margin-top:10px; padding:11px 12px; border-radius:12px;
+  background:#0a1f1c; border:1px solid #123a34; color:#c9e8e1;
+  font-family:var(--mono); font-size:11px; line-height:1.6;
+  overflow-wrap:anywhere; max-height:150px; overflow:auto;
+}
+.tokenbox .k{color:#5eead4; font-weight:700}
+
+/* ============================================================
+   Layout OTP: alur di kiri, panel respons challenge di KANAN,
+   token & real-time di BAWAH panel kanan.
+   ============================================================ */
+.otp-layout{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 340px;
+  gap:14px;
+  padding:16px;
+  align-items:start;
+}
+.otp-main{padding:0}
+@media(max-width:900px){
+  .otp-layout{grid-template-columns:1fr; padding:14px}
+}
+.otp-side{display:grid; gap:10px; min-width:0; align-content:start}
+@media(max-width:900px){
+  .otp-side{position:static}
+}
+
+.side-card{
+  background:#fff; border:1px solid var(--line); border-radius:14px;
+  box-shadow:0 1px 2px rgba(10,31,28,.04), 0 8px 24px -20px rgba(10,31,28,.4);
+  overflow:hidden;
+}
+.side-head{
+  display:flex; align-items:flex-start; justify-content:space-between; gap:8px;
+  padding:11px 12px; border-bottom:1px solid var(--line-2);
+  background:linear-gradient(180deg,#fcfcfa,#fff);
+}
+.side-lbl{font-size:9px; font-weight:800; letter-spacing:.13em; text-transform:uppercase; color:var(--brand)}
+.side-title{font-size:12.5px; font-weight:800; letter-spacing:-.2px; margin-top:2px}
+.side-badge{
+  flex:0 0 auto; font-family:var(--mono); font-size:9.5px; font-weight:700;
+  padding:2px 7px; border-radius:999px; background:#f2f1ea; color:var(--muted); border:1px solid var(--line-2);
+}
+.side-badge.ok{background:var(--brand-soft); color:#0b5d55; border-color:#c9e9e2}
+.side-badge.bad{background:#fdeeee; color:#a33; border-color:#f6d9d9}
+.side-badge.warn{background:#fdf3e6; color:#a35c00; border-color:#f3e2bd}
+.side-badge.busy{background:#eef2ff; color:#3b4fa8; border-color:#dbe2fb}
+.side-body{padding:11px 12px}
+.side-foot{display:flex; gap:7px; flex-wrap:wrap; padding:9px 12px; border-top:1px solid var(--line-2); background:#fcfcfa}
+.side-empty{font-size:11.5px; color:var(--muted); line-height:1.6}
+.side-note{font-size:11px; color:var(--muted); line-height:1.6; margin-bottom:9px}
+.side-note code{font-family:var(--mono); font-size:10.5px; background:#f4f3ec; padding:1px 4px; border-radius:4px; color:var(--ink-2)}
+.side-card .field{margin-top:8px}
+.side-card .field label{font-size:9.5px}
+.side-card .field input,.side-card .field textarea,.side-card .field select{height:34px; font-size:12px; padding:0 9px}
+.side-card .field textarea{height:auto; padding:8px 9px; line-height:1.5; resize:vertical}
+.side-card .actions{margin-top:9px; gap:6px}
+
+/* pasangan input + tombol Copy */
+.copy-row{display:flex; gap:6px; align-items:stretch}.copy-row input,.copy-row textarea{
+  flex:1 1 auto; min-width:0; height:34px; padding:0 9px; border-radius:9px;
+  border:1px solid var(--line); background:#fcfcfa; color:var(--ink);
+  font-family:var(--mono); font-size:11px; outline:none;
+}
+.copy-row textarea{height:auto; padding:8px 9px; line-height:1.55; resize:vertical}
+.copy-row input:focus,.copy-row textarea:focus{border-color:var(--brand-2); background:#fff; box-shadow:0 0 0 3px rgba(20,184,166,.13)}
+.copy-row .btn{flex:0 0 auto; height:34px; min-width:52px}
+
+/* captcha: gambar + instruksi */
+.cap-img-wrap{margin:0 0 9px; padding:8px; border-radius:10px; background:#fcfcfa; border:1px solid var(--line-2); text-align:center}
+.cap-img-wrap img{max-width:100%; height:auto; border-radius:6px; display:block; margin:0 auto; background:#fff}
+.cap-img-meta{font-family:var(--mono); font-size:9.5px; color:var(--muted-2); margin-top:6px; overflow-wrap:anywhere}
+
+/* identitas perangkat */
+.id-rows{display:grid; gap:5px}
+.id-row{display:flex; align-items:baseline; justify-content:space-between; gap:8px; font-size:11px}
+.id-row .k{color:var(--muted); font-weight:600; flex:0 0 auto}
+.id-row .v{font-family:var(--mono); font-size:10.5px; font-weight:600; text-align:right; overflow-wrap:anywhere}
+.id-row .v.ok{color:#0b7a4b}
+.id-row .v.bad{color:var(--err)}
+.id-more{margin-top:10px; border-top:1px dashed var(--line-2); padding-top:9px}
+.id-more summary{font-size:11px; font-weight:700; color:var(--brand); cursor:pointer; list-style:none}
+.id-more summary::-webkit-details-marker{display:none}
+.id-more summary::before{content:'+ '; font-family:var(--mono)}
+.id-more[open] summary::before{content:'\2212 '}
+.id-more > *:not(summary){margin-top:8px}
+
+/* real-time grid */
+.rt-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.rt-item{min-width:0; padding:7px 8px; border-radius:9px; background:#fcfcfa; border:1px solid var(--line-2)}
+.rt-item .k{font-size:8.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--muted-2)}
+.rt-item .v{font-family:var(--mono); font-size:10.5px; font-weight:600; margin-top:2px; overflow-wrap:anywhere}
+.rt-item .v.ok{color:#0b7a4b}
+.rt-item .v.bad{color:var(--err)}
+.rt-item .v.warn{color:var(--warn)}
+.rt-trace{margin-top:9px}
+.rt-trace .trace{margin-top:0}
+
+/* audit list */
+.audit-list{display:grid; gap:5px; max-height:230px; overflow:auto}
+.audit-row{
+  display:flex; align-items:center; gap:7px; font-size:10.5px;
+  padding:6px 8px; border-radius:8px; background:#fcfcfa; border:1px solid var(--line-2);
+}
+.audit-row .t{font-family:var(--mono); font-size:9.5px; color:var(--muted-2); flex:0 0 auto}
+.audit-row .a{font-weight:700; flex:0 0 auto}
+.audit-row .c{font-family:var(--mono); font-size:9.5px; margin-left:auto; color:var(--muted)}
+.audit-row .d{width:6px; height:6px; border-radius:50%; background:var(--muted-2); flex:0 0 auto}
+.audit-row.ok .d{background:var(--ok)}
+.audit-row.fail .d{background:var(--err)}
+.audit-row.blocked .d{background:var(--warn)}
+
+/* baris di bawah panel kanan (cadangan, tidak dipakai saat ini) */
+.otp-bottom{display:grid; gap:10px; padding:0 16px 16px}
+@media(max-width:900px){ .otp-bottom{padding:0 14px 14px} }
+
+/* merchant picker */
+.merchants{display:grid; gap:7px; margin-top:10px}
+.merchant{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:10px 12px; border-radius:11px; border:1px solid var(--line);
+  background:#fcfcfa; text-align:left; width:100%; transition:.16s;
+}
+.merchant:hover{border-color:var(--brand-2); background:var(--brand-soft)}
+.merchant .n{font-size:12.5px; font-weight:700}
+.merchant .i{font-family:var(--mono); font-size:10.5px; color:var(--muted)}
+
+/* ---------- status grid ---------- */
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+@media(max-width:640px){ .grid2{grid-template-columns:1fr} }
+.stat-card{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:15px; box-shadow:var(--shadow)}
+.stat-card .top{display:flex; align-items:center; justify-content:space-between; gap:8px}
+.stat-card .name{font-size:12.5px; font-weight:800; letter-spacing:-.1px}
+.stat-card .rows{margin-top:11px; display:grid; gap:6px}
+.srow{display:flex; align-items:baseline; justify-content:space-between; gap:10px; font-size:11.5px}
+.srow .k{color:var(--muted); font-weight:600}
+.srow .v{font-family:var(--mono); font-size:11px; font-weight:600; text-align:right; overflow-wrap:anywhere}
+.srow .v.ok{color:#0b7a4b}
+.srow .v.bad{color:var(--err)}
+.srow .v.warn{color:var(--warn)}
+.switch{position:relative; width:38px; height:22px; flex:0 0 auto}
+.switch input{position:absolute; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; z-index:2}
+.switch .track{position:absolute; inset:0; border-radius:99px; background:#dcdad0; transition:.2s}
+.switch .knob{position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:#fff; transition:.2s; box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.switch input:checked ~ .track{background:var(--brand)}
+.switch input:checked ~ .knob{transform:translateX(16px)}
+.mini-input{width:64px; height:30px; padding:0 8px; border-radius:8px; border:1px solid var(--line); background:#fcfcfa; font-family:var(--mono); font-size:11.5px; text-align:center; outline:none}
+.mini-input:focus{border-color:var(--brand-2)}
+
+/* ---------- footer ---------- */
+footer{margin-top:38px; padding-top:18px; border-top:1px solid var(--line); display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between}
+footer p{font-size:11px; color:var(--muted-2); font-weight:600}
+footer .badge{display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700; color:var(--muted); background:#fff; border:1px solid var(--line); border-radius:999px; padding:3px 9px}
+
+/* ---------- drawer ---------- */
+.overlay{position:fixed; inset:0; background:rgba(10,31,28,.42); backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:.24s; z-index:70}
+.overlay.show{opacity:1; pointer-events:auto}
+.drawer{
+  position:fixed; top:0; right:0; bottom:0; width:min(310px,86vw); z-index:80;
+  background:#fff; border-left:1px solid var(--line);
+  transform:translateX(102%); transition:transform .28s cubic-bezier(.4,0,.2,1);
+  display:flex; flex-direction:column; box-shadow:-20px 0 60px -30px rgba(10,31,28,.5);
+}
+.drawer.show{transform:none}
+.drawer-head{padding:18px 18px 14px; border-bottom:1px solid var(--line-2); display:flex; align-items:center; justify-content:space-between}
+.drawer-head .t{font-size:13px; font-weight:800; letter-spacing:-.2px}
+.drawer-body{padding:14px 12px; overflow:auto; flex:1}
+.dnav{display:grid; gap:2px}
+.dnav a{
+  display:flex; align-items:center; gap:10px; padding:10px 11px; border-radius:10px;
+  color:var(--ink); font-size:12.5px; font-weight:600; transition:.15s;
+}
+.dnav a:hover{background:var(--brand-soft); color:#0b5d55}
+.dnav a .n{font-family:var(--mono); font-size:10px; color:var(--muted-2); margin-left:auto}
+.dsec{font-size:9.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--muted-2); padding:14px 11px 6px}
+.drawer-foot{padding:12px 14px; border-top:1px solid var(--line-2); font-size:10.5px; color:var(--muted-2); font-weight:600}
+
+/* ---------- modal ---------- */
+.modal{position:fixed; inset:0; z-index:90; display:none; place-items:center; padding:18px; background:rgba(10,31,28,.5); backdrop-filter:blur(3px)}
+.modal.show{display:grid}
+.modal-card{width:100%; max-width:360px; background:#fff; border-radius:20px; padding:24px; box-shadow:var(--shadow-lg); animation:pop .22s ease}
+@keyframes pop{from{opacity:0; transform:scale(.96) translateY(6px)} to{opacity:1; transform:none}}
+.modal-card h3{font-size:16px; font-weight:800; letter-spacing:-.3px}
+.modal-card p{font-size:12px; color:var(--muted); margin-top:5px}
+.modal-card .field{margin-top:14px}
+
+/* ---------- toast ---------- */
+#toasts{position:fixed; left:50%; bottom:20px; transform:translateX(-50%); z-index:100; display:grid; gap:8px; width:min(360px,calc(100vw - 28px))}
+.toast{
+  display:flex; align-items:center; gap:9px; padding:11px 13px; border-radius:12px;
+  background:#0a1f1c; color:#e8f5f2; font-size:12px; font-weight:600;
+  box-shadow:0 18px 40px -18px rgba(0,0,0,.6); animation:tin .24s ease;
+}
+.toast .d{width:7px; height:7px; border-radius:50%; background:#5eead4; flex:0 0 auto}
+.toast.err .d{background:#ff8f7a}
+@keyframes tin{from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none}}
+
+/* ---------- misc ---------- */
+.empty{text-align:center; padding:34px 18px; background:#fff; border:1px dashed var(--line); border-radius:var(--r); color:var(--muted); font-size:12.5px}
+.hidden{display:none !important}
+.mono{font-family:var(--mono)}
+.sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)}
+@media(prefers-reduced-motion:reduce){ *{animation:none !important; transition:none !important} }
+</style>
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-mark">VP</div>
+      <div>
+        <div class="brand-name">Vincent Pay</div>
+        <div class="brand-sub">QRIS Control</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="pill hide-sm" id="pillGopay"><span class="dot"></span><span class="lbl">GoPay</span></span>
+      <span class="pill hide-sm" id="pillShopee"><span class="dot"></span><span class="lbl">Shopee</span></span>
+      <button class="icon-btn" id="menuBtn" aria-label="Buka menu" aria-expanded="false" aria-controls="drawer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <!-- HERO -->
+  <header class="hero">
+    <div class="hero-mark">VP</div>
+    <h1>Vincent Pay × GoMerch × ShopeePay</h1>
+    <p class="sub">Satu dashboard untuk QRIS dinamis, cek mutasi, dan login OTP dua provider.</p>
+    <div class="accent-line"></div>
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="text" id="searchInput" class="search-input" placeholder="Cari endpoint, mis. otp, mutasi, refresh…" autocomplete="off" aria-label="Cari endpoint">
+    </div>
+    <div class="hero-stats">
+      <div class="hstat"><div class="k">GoPay</div><div class="v" id="hsGopay">memuat…</div></div>
+      <div class="hstat"><div class="k">ShopeePay</div><div class="v" id="hsShopee">memuat…</div></div>
+      <div class="hstat"><div class="k">Mode</div><div class="v" id="hsMode"><%= locked ? 'Terkunci' : 'Publik' %></div></div>
+    </div>
+  </header>
+
+  <!-- GOPAY -->
+  <section class="section" id="sec-gopay">
+    <div class="section-head">
+      <div>
+        <div class="lbl">Provider 01</div>
+        <h2>GoPay Merchant</h2>
+      </div>
+      <span class="count" data-count="gopay">0 endpoint</span>
+    </div>
+    <p class="section-desc">Login OTP GoBiz, perpanjang token, dan tarik mutasi QRIS 7 hari terakhir.</p>
+    <div id="list-gopay"></div>
+  </section>
+
+  <!-- SHOPEE -->
+  <section class="section" id="sec-shopee">
+    <div class="section-head">
+      <div>
+        <div class="lbl">Provider 02</div>
+        <h2>ShopeePay Partner</h2>
+      </div>
+      <span class="count" data-count="shopee">0 endpoint</span>
+    </div>
+    <p class="section-desc">Alur OTP yang sudah diperbaiki: diagnosa device-risk dulu, baru kirim OTP — jadi kelihatan persis di langkah mana Shopee menolak.</p>
+
+    <!-- OTP FLOW -->
+    <div class="flow" id="otpFlow">
+      <div class="flow-head">
+        <div class="lbl">Alur utama</div>
+        <h3>Login OTP ShopeePay</h3>
+        <p>Empat langkah, semuanya menampilkan jejak langkah server. Kalau OTP tidak sampai, langkah yang gagal langsung ditandai beserta kode error dan cara memperbaikinya.</p>
+      </div>
+      <div class="otp-layout">
+      <div class="steps otp-main">
+
+        <!-- step 1 -->
+        <div class="step active" id="st1">
+          <div class="step-num">1</div>
+          <div class="step-title">Diagnosa <span>aman, tidak mengirim OTP</span></div>
+          <div class="step-body">
+            <div class="fields">
+              <div class="field">
+                <label>Nomor HP <span class="req">*</span></label>
+                <input id="f-phone" placeholder="0812xxxxxxx" inputmode="tel" autocomplete="tel">
+              </div>
+              <div class="field">
+                <label>Password <span style="text-transform:none;font-weight:600;color:var(--muted-2)">(kalau akun pakai)</span></label>
+                <input id="f-pass" type="password" placeholder="password akun Shopee" autocomplete="current-password">
+              </div>
+            </div>
+            <div class="actions">
+              <button class="btn btn-primary" id="btnDiag">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h4l2 6 4-14 2 8h6"/></svg>
+                Jalankan diagnosa
+              </button>
+              <button class="btn btn-ghost btn-sm" id="btnDiagHelp">Kenapa perlu?</button>
+            </div>
+            <div class="resp" id="diagResp"></div>
+          </div>
+        </div>
+
+        <!-- step 2 -->
+        <div class="step locked" id="st2">
+          <div class="step-num">2</div>
+          <div class="step-title">Kirim OTP <span>pilih channel</span></div>
+          <div class="step-body">
+            <div class="fields">
+              <div class="field">
+                <label>Channel OTP</label>
+                <select id="f-channel">
+                  <option value="">Otomatis (default Shopee)</option>
+                  <option value="1">1 — SMS</option>
+                  <option value="2">2 — Email</option>
+                  <option value="3">3 — WhatsApp</option>
+                  <option value="5">5 — Aplikasi</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>captcha_signature <span style="text-transform:none;font-weight:600;color:var(--muted-2)">(opsional)</span></label>
+                <input id="f-captcha" placeholder="dari request send_otp yang sukses">
+              </div>
+            </div>
+            <div class="actions">
+              <button class="btn btn-primary" id="btnOtp">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></svg>
+                Kirim OTP
+              </button>
+            </div>
+            <div class="resp" id="otpResp"></div>
+          </div>
+        </div>
+
+        <!-- step 3 -->
+        <div class="step locked" id="st3">
+          <div class="step-num">3</div>
+          <div class="step-title">Verifikasi kode <span>4–10 digit</span></div>
+          <div class="step-body">
+            <div class="fields">
+              <div class="field">
+                <label>Kode OTP <span class="req">*</span></label>
+                <input id="f-otp" placeholder="123456" inputmode="numeric" autocomplete="one-time-code" maxlength="10">
+              </div>
+              <div class="field">
+                <label>Simpan di server</label>
+                <select id="f-save">
+                  <option value="1">Ya — token dipakai dashboard &amp; bot</option>
+                  <option value="0">Tidak — hanya tampilkan token</option>
+                </select>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="btn btn-primary" id="btnVerify">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m5 13 4 4L19 7"/></svg>
+                Verifikasi
+              </button>
+            </div>
+            <div class="resp" id="verifyResp"></div>
+            <div id="merchantPick"></div>
+          </div>
+        </div>
+
+        <!-- step 4 -->
+        <div class="step locked" id="st4">
+          <div class="step-num">4</div>
+          <div class="step-title">Token merchant <span>siap dipakai</span></div>
+          <div class="step-body">
+            <div id="tokenOut"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ===== PANEL KANAN: respons challenge ===== -->
+      <aside class="otp-side" id="otpSide">
+        <div class="side-card" id="challengePanel">
+          <div class="side-head">
+            <div>
+              <div class="side-lbl">Respons challenge</div>
+              <div class="side-title" id="chTitle">Belum ada challenge</div>
+            </div>
+            <span class="side-badge" id="chBadge">idle</span>
+          </div>
+          <div class="side-body" id="chBody">
+            <p class="side-empty">Jalankan diagnosa lalu kirim OTP. Respons server (status, channel, jejak langkah, dan bukti pengiriman) muncul di sini.</p>
+          </div>
+          <div class="side-foot">
+            <button class="btn btn-ghost btn-sm" id="btnCopyChallenge" disabled>Copy challenge</button>
+            <button class="btn btn-ghost btn-sm" id="btnCopyTrace" disabled>Copy trace</button>
+          </div>
+        </div>
+
+        <!-- panel captcha: muncul saat Shopee minta captcha -->
+        <div class="side-card hidden" id="captchaPanel">
+          <div class="side-head">
+            <div>
+              <div class="side-lbl">Captcha Shopee</div>
+              <div class="side-title">Selesaikan lalu kirim ulang</div>
+            </div>
+            <span class="side-badge warn">perlu tindakan</span>
+          </div>
+          <div class="side-body">
+            <p class="side-note" id="capInstr">Shopee menolak <code>send_otp</code> karena captcha. Selesaikan captcha di browser Shopee, lalu salin <code>captcha_signature</code> dari request <code>send_otp</code> yang sukses (DevTools &rarr; Network).</p>
+            <!-- gambar captcha: hanya muncul kalau Shopee benar-benar mengirimkannya -->
+            <div class="cap-img-wrap hidden" id="capImgWrap">
+              <img id="capImg" alt="Gambar captcha dari Shopee">
+              <div class="cap-img-meta" id="capImgMeta"></div>
+            </div>
+            <div class="field hidden" id="capAnswerField">
+              <label>Jawaban captcha</label>
+              <input id="f-captcha-answer" placeholder="ketik teks pada gambar" autocomplete="off">
+            </div>
+            <div class="field">
+              <label>captcha_signature <span style="text-transform:none;font-weight:600;color:var(--muted-2)">(dari browser)</span></label>
+              <input id="f-captcha-retry" placeholder="tempel captcha_signature di sini">
+            </div>
+            <div class="actions">
+              <button class="btn btn-accent btn-sm" id="btnRetryOtp">Kirim ulang OTP</button>
+              <button class="btn btn-ghost btn-sm" id="btnCaptchaHelp">Cara ambil</button>
+            </div>
+            <div class="resp" id="retryResp"></div>
+          </div>
+        </div>
+
+        <!-- panel identitas perangkat -->
+        <div class="side-card" id="identityPanel">
+          <div class="side-head">
+            <div>
+              <div class="side-lbl">Device-check</div>
+              <div class="side-title">Identitas perangkat</div>
+            </div>
+            <span class="side-badge" id="idBadge">&mdash;</span>
+          </div>
+          <div class="side-body">
+            <div class="id-rows" id="idRows"><p class="side-empty">Memuat identitas&hellip;</p></div>
+            <details class="id-more">
+              <summary>Tempel data asli dari browser</summary>
+              <p class="side-note">Paling ampuh kalau device-check masih menolak: login manual sekali di browser, lalu salin body request <code>/v2/shpsec/web/report</code> + header <code>szdet</code>.</p>
+              <div class="field">
+                <label>device_report (JSON)</label>
+                <textarea id="f-device-report" rows="3" placeholder='{"device_id":"...","events":[...]}'></textarea>
+              </div>
+              <div class="field">
+                <label>szdet</label>
+                <input id="f-szdet" placeholder="nilai header szdet">
+              </div>
+              <div class="field">
+                <label>captcha_signature</label>
+                <input id="f-captcha-sig" placeholder="opsional">
+              </div>
+              <div class="actions">
+                <button class="btn btn-primary btn-sm" id="btnSaveIdentity">Simpan identitas</button>
+                <button class="btn btn-ghost btn-sm" id="btnResetIdentity">Reset</button>
+              </div>
+              <div class="resp" id="idResp"></div>
+            </details>
+          </div>
+        </div>
+        <!-- ===== DI BAWAH PANEL CHALLENGE: real-time & token ===== -->
+        <div class="side-card" id="realtimePanel">
+          <div class="side-head">
+            <div>
+              <div class="side-lbl">Real-time</div>
+              <div class="side-title">Status alur OTP</div>
+            </div>
+            <span class="side-badge" id="rtBadge">menunggu</span>
+          </div>
+          <div class="side-body">
+            <div class="rt-grid">
+              <div class="rt-item"><div class="k">Nomor</div><div class="v" id="rtPhone">&mdash;</div></div>
+              <div class="rt-item"><div class="k">Channel</div><div class="v" id="rtChannel">&mdash;</div></div>
+              <div class="rt-item"><div class="k">Bukti kirim</div><div class="v" id="rtEvidence">&mdash;</div></div>
+              <div class="rt-item"><div class="k">Challenge</div><div class="v" id="rtChallenge">&mdash;</div></div>
+              <div class="rt-item"><div class="k">Berlaku sampai</div><div class="v" id="rtExpiry">&mdash;</div></div>
+              <div class="rt-item"><div class="k">Merchant</div><div class="v" id="rtMerchant">&mdash;</div></div>
+            </div>
+            <div class="rt-trace" id="rtTrace"></div>
+          </div>
+        </div>
+
+        <div class="side-card" id="tokenPanel">
+          <div class="side-head">
+            <div>
+              <div class="side-lbl">Hasil</div>
+              <div class="side-title">Token merchant</div>
+            </div>
+            <span class="side-badge" id="tokBadge">belum ada</span>
+          </div>
+          <div class="side-body">
+            <div class="field">
+              <label>Token</label>
+              <div class="copy-row">
+                <input id="outToken" readonly placeholder="muncul setelah verifikasi OTP berhasil">
+                <button class="btn btn-ghost btn-sm" id="btnCopyToken" disabled>Copy</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>Session (JSON)</label>
+              <div class="copy-row">
+                <textarea id="outSession" rows="3" readonly placeholder="muncul setelah verifikasi OTP berhasil"></textarea>
+                <button class="btn btn-ghost btn-sm" id="btnCopySession" disabled>Copy</button>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="btn btn-ghost btn-sm" id="btnCopyAll" disabled>Copy semua</button>
+              <button class="btn btn-ghost btn-sm" id="btnDownloadJson" disabled>Unduh JSON</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="side-card" id="auditPanel">
+          <div class="side-head">
+            <div>
+              <div class="side-lbl">Audit trail</div>
+              <div class="side-title">Riwayat langkah OTP</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="btnAuditRefresh">Muat ulang</button>
+          </div>
+          <div class="side-body">
+            <div class="audit-list" id="auditList"><p class="side-empty">Belum dimuat.</p></div>
+          </div>
+        </div>
+      </aside>
+      </div>
+    </div>
+
+    <div id="list-shopee"></div>
+  </section>
+
+  <!-- PEMBAYARAN -->
+  <section class="section" id="sec-pay">
+    <div class="section-head">
+      <div>
+        <div class="lbl">Operasional</div>
+        <h2>Pembayaran &amp; Mutasi</h2>
+      </div>
+      <span class="count" data-count="pay">0 endpoint</span>
+    </div>
+    <p class="section-desc">Buat QRIS dinamis dari QRIS statis, lalu cek status bayar dengan pencocokan nominal + waktu.</p>
+    <div id="list-pay"></div>
+  </section>
+
+  <!-- AUTO REFRESH -->
+  <section class="section" id="sec-auto">
+    <div class="section-head">
+      <div>
+        <div class="lbl">Perawatan</div>
+        <h2>Auto Refresh Token</h2>
+      </div>
+      <span class="count" id="loopBadge">—</span>
+    </div>
+    <p class="section-desc">Token diperpanjang sebelum kedaluwarsa. Di Vercel tidak ada proses hidup terus, jadi tick dipanggil dashboard selama halaman terbuka.</p>
+    <div class="grid2" id="autoGrid">
+      <div class="stat-card" data-prov="gopay">
+        <div class="top">
+          <div class="name">GoPay Merchant</div>
+          <label class="switch"><input type="checkbox" data-auto-toggle><span class="track"></span><span class="knob"></span></label>
+        </div>
+        <div class="rows">
+          <div class="srow"><span class="k">Token</span><span class="v" data-k="token">—</span></div>
+          <div class="srow"><span class="k">Sisa umur</span><span class="v" data-k="left">—</span></div>
+          <div class="srow"><span class="k">Refresh terakhir</span><span class="v" data-k="last">—</span></div>
+          <div class="srow"><span class="k">Interval</span><span class="v"><input class="mini-input" data-auto-min type="number" min="5" max="720" step="5"> mnt</span></div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-ghost btn-sm" data-refresh>Refresh sekarang</button>
+          <button class="btn btn-ghost btn-sm" data-save>Simpan</button>
+        </div>
+      </div>
+      <div class="stat-card" data-prov="shopee">
+        <div class="top">
+          <div class="name">ShopeePay Partner</div>
+          <label class="switch"><input type="checkbox" data-auto-toggle><span class="track"></span><span class="knob"></span></label>
+        </div>
+        <div class="rows">
+          <div class="srow"><span class="k">Token</span><span class="v" data-k="token">—</span></div>
+          <div class="srow"><span class="k">Sisa umur</span><span class="v" data-k="left">—</span></div>
+          <div class="srow"><span class="k">Refresh terakhir</span><span class="v" data-k="last">—</span></div>
+          <div class="srow"><span class="k">Interval</span><span class="v"><input class="mini-input" data-auto-min type="number" min="5" max="720" step="5"> mnt</span></div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-ghost btn-sm" data-refresh>Refresh sekarang</button>
+          <button class="btn btn-ghost btn-sm" data-save>Simpan</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2026 Vincent Pay — dashboard internal</p>
+    <span class="badge">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 2 4 6v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V6Z"/></svg>
+      <%= persistent ? 'Penyimpanan permanen' : 'Penyimpanan sementara (/tmp)' %>
+    </span>
+  </footer>
+</main>
+
+<div class="overlay" id="overlay"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <div class="t">Navigasi</div>
+    <button class="icon-btn" id="closeDrawer" aria-label="Tutup menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body">
+    <div class="dsec">Dashboard</div>
+    <nav class="dnav">
+      <a href="#sec-gopay">GoPay Merchant <span class="n">01</span></a>
+      <a href="#sec-shopee">ShopeePay Partner <span class="n">02</span></a>
+      <a href="#otpFlow">Login OTP Shopee <span class="n">→</span></a>
+      <a href="#sec-pay">Pembayaran &amp; Mutasi <span class="n">03</span></a>
+      <a href="#sec-auto">Auto Refresh <span class="n">04</span></a>
+    </nav>
+    <div class="dsec">Aksi cepat</div>
+    <nav class="dnav">
+      <a href="#" id="dRefreshAll">Refresh semua token</a>
+      <a href="#" id="dLogout">Hapus sesi Shopee</a>
+      <a href="/api/health" target="_blank" rel="noopener">Health check</a>
+    </nav>
+    <div class="dsec">Bantuan</div>
+    <nav class="dnav">
+      <a href="#" id="dHelpOtp">OTP tidak sampai?</a>
+      <a href="#" id="dManualToken">Isi token manual</a>
+    </nav>
+  </div>
+  <div class="drawer-foot">v3.0 · <%= locked ? 'Mode terkunci' : 'Mode publik' %></div>
+</aside>
+
+<div class="modal" id="loginModal">
+  <div class="modal-card">
+    <h3>Masuk dashboard</h3>
+    <p>Dashboard ini dikunci dengan ADMIN_PASSWORD.</p>
+    <div class="field">
+      <label>Password</label>
+      <input id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" id="loginBtn" style="width:100%">Masuk</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+window.__BOOT = {
+  admin: <%- JSON.stringify(!!admin) %>,
+  locked: <%- JSON.stringify(!!locked) %>,
+  persistent: <%- JSON.stringify(!!persistent) %>
+};
+</script>
+<script>
+(function(){
+'use strict';
+
+/* ============================================================
+   util
+   ============================================================ */
+const $  = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function toast(msg, kind){
+  const box = $('#toasts');
+  const t = document.createElement('div');
+  t.className = 'toast' + (kind === 'err' ? ' err' : '');
+  t.innerHTML = '<span class="d"></span><span>' + esc(msg) + '</span>';
+  box.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(8px)'; t.style.transition = '.25s'; }, 3200);
+  setTimeout(() => t.remove(), 3600);
+}
+
+function fmtLeft(ms){
+  if (ms == null) return '—';
+  if (ms <= 0) return 'kedaluwarsa';
+  const m = Math.floor(ms / 60000);
+  if (m < 60) return m + ' mnt';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + ' jam ' + (m % 60) + ' mnt';
+  return Math.floor(h / 24) + ' hari';
+}
+function fmtAgo(ms){
+  if (ms == null) return '—';
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return 'baru saja';
+  if (m < 60) return m + ' mnt lalu';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + ' jam lalu';
+  return Math.floor(h / 24) + ' hari lalu';
+}
+
+/* ============================================================
+   api
+   ============================================================ */
+let loginResolve = null;
+function showLogin(){
+  $('#loginModal').classList.add('show');
+  setTimeout(() => $('#loginPass').focus(), 60);
+  return new Promise(res => { loginResolve = res; });
+}
+
+async function api(path, body, method){
+  method = method || (body === undefined ? 'GET' : 'POST');
+  const t0 = performance.now();
+  let r, txt;
+  try {
+    r = await fetch(path, {
+      method,
+      credentials: 'same-origin',
+      headers: method === 'GET' ? {} : { 'Content-Type': 'application/json' },
+      body: method === 'GET' ? undefined : JSON.stringify(body || {})
+    });
+    txt = await r.text();
+  } catch (e) {
+    return { ok: false, status: 0, data: { success: false, error: 'Tidak bisa menghubungi server: ' + e.message }, ms: 0 };
+  }
+  let data;
+  try { data = JSON.parse(txt); } catch (e) { data = { success: false, error: 'Balasan bukan JSON', raw: txt.slice(0, 400) }; }
+  if (r.status === 401 && window.__BOOT.locked) {
+    await showLogin();
+    return api(path, body, method);
+  }
+  return { ok: r.ok, status: r.status, data, ms: Math.round(performance.now() - t0) };
+}
+
+/* ============================================================
+   response renderer
+   ============================================================ */
+function renderResp(box, res, opts){
+  opts = opts || {};
+  box.classList.add('show');
+  const cls = res.status >= 500 ? 's5' : (res.status >= 400 ? 's4' : 's2');
+  const label = res.ok ? 'OK' : 'GAGAL';
+  let html = '<div class="resp-bar">'
+    + '<span class="tag ' + cls + '">' + res.status + ' ' + label + '</span>'
+    + '<span>' + res.ms + ' ms</span>'
+    + (opts.note ? '<span style="margin-left:auto;font-weight:600">' + esc(opts.note) + '</span>' : '')
+    + '</div>';
+
+  const d = res.data || {};
+  if (!res.ok) {
+    const code = d.code != null ? String(d.code) : '';
+    const hint = d.hint || hintFor(code);
+    html += '<div class="alert err">'
+      + '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>'
+      + '<div><b>' + esc(d.error || 'Permintaan gagal') + (code ? ' · <code>' + esc(code) + '</code>' : '') + '</b>'
+      + (hint ? esc(hint) : '') + '</div></div>';
+  }
+  html += '<pre>' + esc(JSON.stringify(d, null, 2)) + '</pre>';
+  box.innerHTML = html;
+}
+
+function hintFor(code){
+  switch (String(code)) {
+    case 'CAPTCHA_REQUIRED': return 'Shopee minta captcha. Isi captcha_signature di panel Captcha (kanan), lalu klik Kirim ulang OTP — alur tidak diulang dari nol.';
+    case 'DEVICE_BLOCKED': return 'Device-check menolak. Buka panel Identitas Perangkat, tempel device_report + szdet asli dari browser yang pernah login sukses, lalu ulangi.';
+    case 'OTP_UNVERIFIED': return 'Shopee balas sukses tapi tanpa bukti kirim, jadi OTP tidak terkirim. Perbaiki identitas perangkat / channel, lalu kirim ulang.';
+    case 'PASSWORD_REQUIRED': return 'Akun ini memakai password. Isi kolom password di langkah 1 lalu ulangi.';
+    case 'RATE_LIMITED': return 'Terlalu sering minta OTP. Tunggu 10–30 menit sebelum mencoba lagi.';
+    default: return '';
+  }
+}
+
+/* ============================================================
+   endpoint registry
+   ============================================================ */
+const EP = [
+  /* ---- GoPay ---- */
+  { g:'gopay', m:'POST', p:'/api/gopay/otp', t:'Request OTP GoMerch',
+    d:'Kirim OTP ke nomor akun GoBiz. Balasan berisi otp_token yang dipakai di langkah verifikasi.',
+    f:[{k:'phone', l:'Nomor HP', ph:'0812xxxxxxx', req:1}] },
+  { g:'gopay', m:'POST', p:'/api/gopay/verify', t:'Verifikasi OTP GoMerch',
+    d:'Tukar OTP + otp_token jadi access_token. Kalau "Simpan" = ya, token langsung dipakai dashboard.',
+    f:[{k:'otp', l:'Kode OTP', ph:'123456', req:1},{k:'otp_token', l:'otp_token', ph:'dari langkah 1', req:1},
+       {k:'save', l:'Simpan di server', type:'select', opts:[['1','Ya'],['0','Tidak']]}] },
+  { g:'gopay', m:'GET', p:'/api/pay/history?provider=gopay', t:'Mutasi QRIS GoPay',
+    d:'Riwayat transaksi QRIS 7 hari terakhir dari jurnal GoBiz.',
+    f:[], q:{provider:'gopay'} },
+
+  /* ---- Shopee ---- */
+  { g:'shopee', m:'POST', p:'/api/shopee/diagnose', t:'Diagnosa alur OTP',
+    d:'Menjalankan alur sampai SEBELUM send_otp: device-risk, password, setelan OTP. Aman dipanggil berulang tanpa memicu OTP atau rate limit.',
+    f:[{k:'phone', l:'Nomor HP', ph:'0812xxxxxxx', req:1},{k:'password', l:'Password (opsional)', ph:'password akun', type:'password'}] },
+  { g:'shopee', m:'POST', p:'/api/shopee/otp', t:'Kirim OTP ShopeePay',
+    d:'Kirim OTP ke channel pilihan + VERIFIKASI bukti pengiriman. Balasan berisi challenge terenkripsi, bukti (otp_token/expire), dan jejak langkah (trace).',
+    f:[{k:'phone', l:'Nomor HP', ph:'0812xxxxxxx', req:1},{k:'password', l:'Password (opsional)', ph:'password akun', type:'password'},
+       {k:'channel', l:'Channel', type:'select', opts:[['','Otomatis'],['1','1 SMS'],['2','2 Email'],['3','3 WhatsApp'],['5','5 Aplikasi']]},
+       {k:'captcha_signature', l:'captcha_signature', ph:'opsional'}] },
+  { g:'shopee', m:'POST', p:'/api/shopee/otp/retry', t:'Kirim ulang OTP setelah captcha',
+    d:'Pakai state retry dari error captcha/device. Tidak mengulang login page, device-risk, dan password — jadi skor risiko Shopee tidak naik.',
+    f:[{k:'retry', l:'state retry', ph:'dari respons captcha', req:1},{k:'captcha_signature', l:'captcha_signature', ph:'dari DevTools'},
+       {k:'phone', l:'Nomor HP', ph:'0812xxxxxxx'}] },
+  { g:'shopee', m:'GET', p:'/api/shopee/identity', t:'Identitas perangkat',
+    d:'Menampilkan device_id, status telemetri, szdet, dan captcha_signature yang sedang dipakai. Ini yang menentukan lolos/tidaknya device-check Shopee.',
+    f:[] },
+  { g:'shopee', m:'GET', p:'/api/shopee/audit?limit=50', t:'Audit trail OTP',
+    d:'Riwayat langkah OTP: aksi, nomor (disamarkan), hasil, kode error, durasi. Password/OTP/token/captcha tidak pernah dicatat.',
+    f:[], q:{limit:'50'} },
+  { g:'shopee', m:'POST', p:'/api/shopee/verify', t:'Verifikasi OTP ShopeePay',
+    d:'Tukar challenge + OTP jadi token merchant. Kalau akun punya beberapa merchant, balasan berisi daftar untuk dipilih.',
+    f:[{k:'challenge', l:'challenge', ph:'dari langkah kirim OTP', req:1},{k:'otp', l:'Kode OTP', ph:'123456', req:1},
+       {k:'save', l:'Simpan di server', type:'select', opts:[['1','Ya'],['0','Tidak']]}] },
+  { g:'shopee', m:'POST', p:'/api/shopee/select', t:'Pilih merchant',
+    d:'Lanjutkan login untuk merchant tertentu tanpa OTP baru, memakai verification dari langkah sebelumnya.',
+    f:[{k:'verification', l:'verification', ph:'dari verify', req:1},{k:'merchant_id', l:'merchant_id', ph:'1234567890', req:1}] },
+  { g:'shopee', m:'POST', p:'/api/shopee/logout', t:'Hapus sesi Shopee',
+    d:'Menghapus sesi OTP dan token ShopeePay dari server. Pakai kalau mau login ulang dari nol.',
+    f:[] },
+  { g:'shopee', m:'GET', p:'/api/pay/history?provider=shopee', t:'Mutasi QRIS ShopeePay',
+    d:'Riwayat transaksi QRIS 7 hari terakhir dari Partner Portal.',
+    f:[], q:{provider:'shopee'} },
+
+  /* ---- Pembayaran ---- */
+  { g:'pay', m:'POST', p:'/api/pay/create', t:'Buat QRIS dinamis',
+    d:'Ubah QRIS statis jadi QRIS dinamis dengan nominal tertentu. Balasan berisi qr_string dan gambar PNG base64.',
+    f:[{k:'provider', l:'Provider', type:'select', opts:[['gopay','GoPay'],['shopee','ShopeePay']], req:1},
+       {k:'amount', l:'Nominal (Rp)', ph:'15000', req:1, type:'number'}] },
+  { g:'pay', m:'POST', p:'/api/pay/check', t:'Cek status pembayaran',
+    d:'Cocokkan nominal + waktu dibuat dengan mutasi. Satu struk hanya bisa diklaim satu pembeli.',
+    f:[{k:'provider', l:'Provider', type:'select', opts:[['gopay','GoPay'],['shopee','ShopeePay']], req:1},
+       {k:'amount', l:'Nominal (Rp)', ph:'15000', req:1, type:'number'},
+       {k:'created_at', l:'created_at', ph:'ISO / epoch ms dari create', req:1}] },
+  { g:'pay', m:'GET', p:'/api/token/status', t:'Status token semua provider',
+    d:'Ringkasan token, sisa umur, jadwal refresh, dan error terakhir untuk kedua provider.',
+    f:[] }
+];
+
+/* ============================================================
+   render endpoint cards
+   ============================================================ */
+function fieldHtml(f){
+  const req = f.req ? ' <span class="req">*</span>' : '';
+  let input;
+  if (f.type === 'select') {
+    input = '<select data-f="' + f.k + '">' + f.opts.map(o =>
+      '<option value="' + esc(o[0]) + '">' + esc(o[1]) + '</option>').join('') + '</select>';
+  } else {
+    input = '<input data-f="' + f.k + '" type="' + (f.type || 'text') + '" placeholder="' + esc(f.ph || '') + '"'
+      + (f.type === 'number' ? ' inputmode="numeric"' : '') + '>';
+  }
+  return '<div class="field"><label>' + esc(f.l) + req + '</label>' + input + '</div>';
+}
+
+function cardHtml(e, i){
+  const id = 'ep-' + e.g + '-' + i;
+  const mcls = e.m === 'GET' ? 'get' : (e.m === 'DELETE' ? 'del' : 'post');
+  return '<article class="card" id="' + id + '" data-search="' + esc((e.p + ' ' + e.t + ' ' + e.d).toLowerCase()) + '">'
+    + '<button class="card-head" type="button" aria-expanded="false" aria-controls="' + id + '-b">'
+    +   '<span class="method ' + mcls + '">' + e.m + '</span>'
+    +   '<span class="card-title"><span class="p">' + esc(e.p) + '</span><span class="t">' + esc(e.t) + '</span></span>'
+    +   '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>'
+    + '</button>'
+    + '<div class="card-body" id="' + id + '-b">'
+    +   '<p class="card-desc">' + esc(e.d) + '</p>'
+    +   (e.f.length ? '<div class="fields">' + e.f.map(fieldHtml).join('') + '</div>' : '')
+    +   '<div class="actions">'
+    +     '<button class="btn btn-primary" data-run>'
+    +       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m5 3 14 9-14 9V3Z"/></svg>'
+    +       'Jalankan</button>'
+    +     '<button class="btn btn-ghost btn-sm" data-copy>Salin cURL</button>'
+    +   '</div>'
+    +   '<div class="resp" data-resp></div>'
+    + '</div></article>';
+}
+
+function mount(){
+  ['gopay','shopee','pay'].forEach(g => {
+    const list = $('#list-' + g);
+    const items = EP.filter(e => e.g === g);
+    list.innerHTML = items.map(cardHtml).join('');
+    const c = $('[data-count="' + g + '"]');
+    if (c) c.textContent = items.length + ' endpoint';
+  });
+
+  // accordion
+  document.addEventListener('click', ev => {
+    const head = ev.target.closest('.card-head');
+    if (head) {
+      const card = head.closest('.card');
+      const open = card.classList.toggle('open');
+      head.setAttribute('aria-expanded', open ? 'true' : 'false');
+      return;
+    }
+    const run = ev.target.closest('[data-run]');
+    if (run) { runCard(run.closest('.card')); return; }
+    const cp = ev.target.closest('[data-copy]');
+    if (cp) { copyCurl(cp.closest('.card')); return; }
+  });
+}
+
+function cardEndpoint(card){
+  const idx = Array.from(document.querySelectorAll('.card')).indexOf(card);
+  return EP[idx];
+}
+
+function collect(card){
+  const body = {};
+  $$('[data-f]', card).forEach(inp => {
+    const v = inp.value.trim();
+    if (v !== '') body[inp.dataset.f] = v;
+  });
+  return body;
+}
+
+async function runCard(card){
+  const e = cardEndpoint(card);
+  const btn = $('[data-run]', card);
+  const box = $('[data-resp]', card);
+  const old = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Menjalankan…';
+  const body = collect(card);
+  let path = e.p, res;
+  if (e.m === 'GET') {
+    const qs = new URLSearchParams(e.q || {}).toString();
+    res = await api(path + (qs ? (path.includes('?') ? '&' : '?') + qs : ''), undefined, 'GET');
+  } else {
+    res = await api(path, body, 'POST');
+  }
+  renderResp(box, res);
+  btn.disabled = false;
+  btn.innerHTML = old;
+  if (res.ok) toast(e.t + ' berhasil');
+  else toast(e.t + ' gagal', 'err');
+}
+
+function copyCurl(card){
+  const e = cardEndpoint(card);
+  const body = collect(card);
+  const origin = location.origin;
+  let cmd;
+  if (e.m === 'GET') {
+    const qs = new URLSearchParams(e.q || {}).toString();
+    cmd = 'curl -s "' + origin + e.p + (qs ? (e.p.includes('?') ? '&' : '?') + qs : '') + '"';
+  } else {
+    cmd = "curl -s -X POST '" + origin + e.p + "' \\\n  -H 'Content-Type: application/json' \\\n  -d '" + JSON.stringify(body) + "'";
+  }
+  navigator.clipboard.writeText(cmd).then(
+    () => toast('cURL disalin'),
+    () => toast('Gagal menyalin', 'err')
+  );
+}
+
+/* ============================================================
+   search
+   ============================================================ */
+function initSearch(){
+  const inp = $('#searchInput');
+  inp.addEventListener('input', () => {
+    const q = inp.value.trim().toLowerCase();
+    let any = false;
+    $$('.card').forEach(c => {
+      const hit = !q || c.dataset.search.includes(q);
+      c.classList.toggle('hidden', !hit);
+      if (hit) any = true;
+    });
+    $$('.section').forEach(s => {
+      const cards = $$('.card', s);
+      if (!cards.length) return;
+      const visible = cards.some(c => !c.classList.contains('hidden'));
+      s.classList.toggle('hidden', !visible);
+    });
+    let empty = $('#searchEmpty');
+    if (!any) {
+      if (!empty) {
+        empty = document.createElement('div');
+        empty.id = 'searchEmpty';
+        empty.className = 'empty';
+        empty.innerHTML = '<b>Tidak ada endpoint cocok</b><br>Coba kata kunci lain, mis. “otp”, “mutasi”, “refresh”.';
+        $('#sec-gopay').before(empty);
+      }
+      empty.classList.remove('hidden');
+    } else if (empty) empty.classList.add('hidden');
+  });
+}
+
+/* ============================================================
+   OTP flow
+   ============================================================ */
+const flow = { challenge: null, verification: null, merchants: [] };
+
+function setStep(n, state){
+  const el = $('#st' + n);
+  if (!el) return;
+  el.classList.remove('locked', 'active', 'done');
+  if (state) el.classList.add(state);
+}
+function unlock(n){ const el = $('#st' + n); if (el) el.classList.remove('locked'); }
+
+function traceHtml(trace){
+  if (!Array.isArray(trace) || !trace.length) return '';
+  return '<div class="trace">' + trace.map(t => {
+    const bad = t.error && t.error !== 0 && t.error !== 'unparsed';
+    return '<span class="chip ' + (bad ? 'bad' : 'ok') + '"><span class="d"></span>' + esc(t.step) + '</span>';
+  }).join('') + '</div>';
+}
+
+function stepsHtml(steps){
+  if (!Array.isArray(steps) || !steps.length) return '';
+  return '<div class="trace">' + steps.map(s =>
+    '<span class="chip ' + (s.ok ? 'ok' : 'bad') + '"><span class="d"></span>' + esc(s.step) + '</span>'
+  ).join('') + '</div>';
+}
+
+function busy(btn, on, label){
+  if (on) {
+    btn.dataset.old = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin"></span> ' + (label || 'Memproses…');
+  } else {
+    btn.disabled = false;
+    btn.innerHTML = btn.dataset.old || btn.innerHTML;
+  }
+}
+
+function initFlow(){
+  const phone = $('#f-phone'), pass = $('#f-pass');
+  const chName = c => ({1:'SMS',2:'Email',3:'WhatsApp',5:'Aplikasi'}[c] || ('channel ' + c));
+
+  /* ---------- helper panel kanan ---------- */
+  function badge(id, text, cls){
+    const el = $(id); if (!el) return;
+    el.className = 'side-badge' + (cls ? ' ' + cls : '');
+    el.textContent = text;
+  }
+  function sideState(kind, title, html){
+    badge('#chBadge', kind === 'ok' ? 'sukses' : kind === 'err' ? 'gagal' : kind === 'warn' ? 'perlu tindakan' : 'memproses',
+      kind === 'ok' ? 'ok' : kind === 'err' ? 'bad' : kind === 'warn' ? 'warn' : 'busy');
+    if (title) $('#chTitle').textContent = title;
+    $('#chBody').innerHTML = html;
+  }
+  function copyBtn(id, value, label){
+    const b = $(id); if (!b) return;
+    b.disabled = !value;
+    b.dataset.value = value || '';
+  }
+
+  /* ---------- real-time ---------- */
+  function setRT(k, v, cls){
+    const el = $('[data-rt="' + k + '"]') || $('#rt' + k);
+    if (!el) return;
+    el.textContent = v == null || v === '' ? '—' : String(v);
+    el.classList.remove('ok', 'bad', 'warn');
+    if (cls) el.classList.add(cls);
+  }
+  function renderRT(d){
+    if (!d) return;
+    badge('#rtBadge', d.step || 'berjalan', d.badge || 'busy');
+    $('#rtPhone').textContent = d.phone || '—';
+    $('#rtChannel').textContent = d.channel ? (chName(d.channel) + ' (' + d.channel + ')') : '—';
+    const ev = d.evidence || null;
+    $('#rtEvidence').textContent = ev ? ('terverifikasi · ' + Object.keys(ev).length + ' field') : (d.evidence === false ? 'tidak ada bukti' : '—');
+    $('#rtEvidence').className = 'v ' + (ev ? 'ok' : d.evidence === false ? 'bad' : '');
+    $('#rtChallenge').textContent = d.challenge ? ('ada · ' + String(d.challenge).length + ' char') : '—';
+    $('#rtChallenge').className = 'v ' + (d.challenge ? 'ok' : '');
+    $('#rtExpiry').textContent = d.expiresAt ? new Date(d.expiresAt).toLocaleTimeString('id-ID') : '—';
+    $('#rtMerchant').textContent = d.merchant || '—';
+    $('#rtTrace').innerHTML = d.trace ? traceHtml(d.trace) : '';
+  }
+
+  /* ---------- token panel ---------- */
+  function showToken(d){
+    const tok = d.token || '';
+    const ses = JSON.stringify(d.session || {}, null, 2);
+    $('#outToken').value = tok;
+    $('#outSession').value = d.session ? ses : '';
+    ['#btnCopyToken', '#btnCopySession', '#btnCopyAll', '#btnDownloadJson'].forEach(b => { const el = $(b); if (el) el.disabled = !tok; });
+    badge('#tokBadge', d.saved ? 'tersimpan' : 'tampil saja', d.saved ? 'ok' : 'warn');
+    $('#tokenOut').innerHTML = '<div class="alert ok">'
+      + '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m5 13 4 4L19 7"/></svg>'
+      + '<div><b>' + esc(d.merchant || 'Merchant') + '</b>'
+      + (d.saved ? 'Token disimpan di server dan dipakai dashboard/bot.' : 'Token hanya ditampilkan — tidak disimpan di server.')
+      + ' Salin di panel kanan bawah.</div></div>';
+    renderRT({ step: 'selesai', badge: 'ok', phone: phone.value.trim(), merchant: d.merchant || '—', evidence: {}, challenge: flow.challenge });
+    refreshStatus();
+    loadAudit();
+  }
+
+  /* ---------- audit ---------- */
+  async function loadAudit(){
+    const box = $('#auditList');
+    if (!box) return;
+    const res = await api('/api/shopee/audit?limit=12', undefined, 'GET');
+    if (!res.ok) { box.innerHTML = '<p class="side-empty">Gagal memuat audit trail.</p>'; return; }
+    const ev = (res.data && res.data.events) || [];
+    if (!ev.length) { box.innerHTML = '<p class="side-empty">Belum ada aktivitas.</p>'; return; }
+    box.innerHTML = ev.map(e => {
+      const t = new Date(e.at).toLocaleTimeString('id-ID');
+      const cls = e.outcome === 'ok' ? 'ok' : e.outcome === 'blocked' ? 'blocked' : 'fail';
+      return '<div class="audit-row ' + cls + '"><span class="d"></span><span class="t">' + esc(t) + '</span>'
+        + '<span class="a">' + esc(e.action || '?') + '</span>'
+        + '<span class="c">' + esc(e.code || e.outcome || '') + (e.ms != null ? ' · ' + e.ms + 'ms' : '') + '</span></div>';
+    }).join('');
+  }
+
+  /* ---------- identitas perangkat ---------- */
+  async function loadIdentity(){
+    const res = await api('/api/shopee/identity', undefined, 'GET');
+    if (!res.ok) { $('#idRows').innerHTML = '<p class="side-empty">Gagal memuat identitas.</p>'; return; }
+    const id = res.data.identity || {};
+    badge('#idBadge', id.source === 'capture' ? 'asli browser' : 'turunan', id.source === 'capture' ? 'ok' : 'warn');
+    const row = (k, v, cls) => '<div class="id-row"><span class="k">' + esc(k) + '</span><span class="v ' + (cls || '') + '">' + esc(v) + '</span></div>';
+    $('#idRows').innerHTML =
+      row('device_id', id.deviceId || '—', 'ok')
+      + row('telemetri', id.hasDeviceReport ? (id.deviceReportBytes + ' byte') : 'dibuat otomatis', id.hasDeviceReport ? 'ok' : '')
+      + row('szdet', id.hasSzdet ? 'asli' : 'bertanda tangan', id.hasSzdet ? 'ok' : '')
+      + row('captcha_sig', id.hasCaptchaSignature ? 'ada' : 'belum ada', id.hasCaptchaSignature ? 'ok' : 'bad')
+      + row('UA', String(id.ua || '').slice(0, 34) + '…');
+  }
+  $('#btnAuditRefresh').addEventListener('click', loadAudit);
+  $('#btnSaveIdentity').addEventListener('click', async () => {
+    const body = {};
+    if ($('#f-device-report').value.trim()) body.device_report = $('#f-device-report').value.trim();
+    if ($('#f-szdet').value.trim()) body.szdet = $('#f-szdet').value.trim();
+    if ($('#f-captcha-sig').value.trim()) body.captcha_signature = $('#f-captcha-sig').value.trim();
+    if (!Object.keys(body).length) { toast('Isi minimal satu kolom', 'err'); return; }
+    const res = await api('/api/shopee/identity', body);
+    renderResp($('#idResp'), res);
+    if (res.ok) { toast('Identitas perangkat disimpan'); loadIdentity(); }
+    else toast('Gagal menyimpan identitas', 'err');
+  });
+  $('#btnResetIdentity').addEventListener('click', async () => {
+    const res = await api('/api/shopee/identity/reset', {});
+    if (res.ok) { toast('Identitas direset'); loadIdentity(); }
+    else toast('Gagal reset', 'err');
+  });
+
+  /* ---------- copy handlers ---------- */
+  const copy = (v, msg) => {
+    if (!v) return;
+    const done = () => toast(msg || 'Disalin');
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(v).then(done, () => fallbackCopy(v, done));
+    else fallbackCopy(v, done);
+  };
+  function fallbackCopy(v, done){
+    const ta = document.createElement('textarea');
+    ta.value = v; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { toast('Gagal menyalin', 'err'); }
+    ta.remove();
+  }
+  $('#btnCopyToken').addEventListener('click', () => copy($('#outToken').value, 'Token disalin'));
+  $('#btnCopySession').addEventListener('click', () => copy($('#outSession').value, 'Session disalin'));
+  $('#btnCopyAll').addEventListener('click', () => copy(JSON.stringify({ token: $('#outToken').value, session: JSON.parse($('#outSession').value || '{}') }, null, 2), 'Token + session disalin'));
+  $('#btnCopyChallenge').addEventListener('click', e => copy(e.currentTarget.dataset.value, 'Challenge disalin'));
+  $('#btnCopyTrace').addEventListener('click', e => copy(e.currentTarget.dataset.value, 'Trace disalin'));
+  $('#btnDownloadJson').addEventListener('click', () => {
+    const blob = new Blob([$('#outSession').value || '{}'], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'shopee-session.json'; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  });
+
+  /* --- step 1: diagnose --- */
+  $('#btnDiag').addEventListener('click', async () => {
+    const btn = $('#btnDiag');
+    if (!phone.value.trim()) { toast('Isi nomor HP dulu', 'err'); phone.focus(); return; }
+    busy(btn, true, 'Mendiagnosa…');
+    sideState('busy', 'Mendiagnosa perangkat…', '<p class="side-empty">Menjalankan alur sampai sebelum send_otp: login page, device-risk, password, setelan OTP.</p>');
+    const res = await api('/api/shopee/diagnose', { phone: phone.value.trim(), password: pass.value || undefined });
+    busy(btn, false);
+    const box = $('#diagResp');
+    box.classList.add('show');
+    const d = res.data || {};
+    let html = '<div class="resp-bar"><span class="tag ' + (res.ok ? 's2' : 's4') + '">' + res.status + '</span><span>' + res.ms + ' ms</span></div>';
+    if (res.ok) {
+      const allOk = (d.steps || []).every(s => s.ok);
+      html += '<div class="alert ' + (allOk ? 'ok' : 'warn') + '">'
+        + '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2 4 6v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V6Z"/></svg>'
+        + '<div><b>' + esc(d.verdict || (allOk ? 'SIAP kirim OTP' : 'ADA HAMBATAN')) + '</b>'
+        + 'device_id <code>' + esc(String(d.deviceId || '').slice(0, 12)) + '…</code> · risk token <code>' + esc(d.riskToken || '—') + '</code></div></div>';
+      html += stepsHtml(d.steps);
+      const failed = (d.steps || []).filter(s => !s.ok);
+      if (failed.length) {
+        html += '<div class="alert err"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg><div><b>Langkah gagal: ' + esc(failed.map(f => f.step).join(', ')) + '</b>'
+          + esc(failed.map(f => f.detail && (f.detail.hint || f.detail.message)).filter(Boolean).join(' · ') || 'Lihat detail JSON di bawah.') + '</div></div>';
+      }
+      html += '<pre>' + esc(JSON.stringify(d, null, 2)) + '</pre>';
+      box.innerHTML = html;
+
+      // panel kanan: hasil diagnosa
+      sideState(allOk ? 'ok' : 'warn', allOk ? 'Perangkat siap kirim OTP' : 'Ada hambatan di device-check',
+        '<p class="side-note">' + esc(d.verdict || '') + '</p>'
+        + '<div class="id-row"><span class="k">risk token</span><span class="v ok">' + esc(d.riskToken || '—') + '</span></div>'
+        + '<div class="id-row"><span class="k">device</span><span class="v">' + esc(String(d.deviceId || '').slice(0, 16)) + '…</span></div>'
+        + stepsHtml(d.steps)
+        + (failed.length ? '<p class="side-note" style="margin-top:9px">' + esc(failed.map(f => f.step).join(', ')) + ' gagal — lihat hint di bawah langkah.</p>' : ''));
+      renderRT({ step: allOk ? 'diagnosa lolos' : 'diagnosa gagal', badge: allOk ? 'ok' : 'bad', phone: d.phone, evidence: null });
+
+      if (allOk) { setStep(1, 'done'); unlock(2); setStep(2, 'active'); toast('Diagnosa lolos — lanjut kirim OTP'); }
+      else { setStep(1, 'active'); toast('Ada hambatan, cek langkah yang merah', 'err'); }
+    } else {
+      renderResp(box, res);
+      sideState('err', 'Diagnosa gagal', '<p class="side-note">' + esc(d.error || 'Permintaan gagal') + '</p>');
+      toast('Diagnosa gagal', 'err');
+    }
+    loadIdentity();
+  });
+
+  $('#btnDiagHelp').addEventListener('click', () => {
+    const box = $('#diagResp');
+    box.classList.add('show');
+    box.innerHTML = '<div class="alert warn">'
+      + '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>'
+      + '<div><b>Kenapa diagnosa dulu?</b>Diagnosa menjalankan alur sampai tepat sebelum <code>send_otp</code>. Jadi kalau OTP tidak sampai, kamu tahu apakah masalahnya di device-risk, password, atau captcha — tanpa memicu OTP baru dan tanpa kena rate limit.</div></div>';
+  });
+
+  /* ---------- panel captcha (retry tanpa ulang dari nol) ---------- */
+  let retryState = null;
+  let capToken = null, capScene = null;
+
+  // Tampilkan detail captcha dari server: gambar kalau ada, kalau tidak instruksi
+  // + field signature. Ini yang membuat alur captcha benar-benar bisa diselesaikan
+  // dari dashboard, bukan cuma pesan error.
+  function renderCaptchaDetail(cap){
+    const wrap = $('#capImgWrap'), img = $('#capImg'), meta = $('#capImgMeta');
+    const ansField = $('#capAnswerField'), instr = $('#capInstr');
+    capToken = (cap && cap.token) || null;
+    capScene = (cap && cap.scene_id) || null;
+    if (cap && cap.has_image && cap.image) {
+      img.src = cap.image;
+      wrap.classList.remove('hidden');
+      ansField.classList.remove('hidden');
+      meta.textContent = 'scene: ' + (cap.scene_id || '—') + (cap.token ? ' · token: ' + String(cap.token).slice(0, 12) + '…' : '');
+    } else {
+      img.removeAttribute('src');
+      wrap.classList.add('hidden');
+      ansField.classList.add('hidden');
+      $('#f-captcha-answer').value = '';
+    }
+    if (cap && cap.instruction) instr.textContent = cap.instruction;
+  }
+
+  function showCaptchaPanel(d){
+    const p = $('#captchaPanel');
+    if (!p) return;
+    p.classList.remove('hidden');
+    retryState = d.retry || null;
+    $('#retryResp').classList.remove('show');
+    $('#f-captcha-retry').value = '';
+    renderCaptchaDetail(d.captcha);
+    const why = d.code === 'DEVICE_BLOCKED' ? 'Device-check menolak perangkat' : 'Shopee minta captcha';
+    sideState('warn', why,
+      '<p class="side-note">' + esc(d.error || '') + '</p>'
+      + (d.hint ? '<p class="side-note">' + esc(d.hint) + '</p>' : '')
+      + '<p class="side-note">Isi <code>captcha_signature</code> di panel Captcha, lalu klik <b>Kirim ulang OTP</b>. Alur tidak diulang dari nol, jadi skor risiko tidak naik.</p>');
+    toast(why, 'err');
+  }
+  function hideCaptchaPanel(){
+    $('#captchaPanel').classList.add('hidden');
+    retryState = null;
+    capToken = null; capScene = null;
+  }
+  $('#btnCaptchaHelp').addEventListener('click', () => {
+    $('#retryResp').classList.add('show');
+    $('#retryResp').innerHTML = '<div class="alert warn">'
+      + '<div><b>Cara ambil captcha_signature (DevTools)</b>'
+      + '1) Buka <code>partner.shopee.co.id</code> di browser, login manual dengan nomor yang sama.<br>'
+      + '2) Buka DevTools (F12) &rarr; tab <b>Network</b>, filter <code>send_otp</code>.<br>'
+      + '3) Selesaikan captcha di halaman itu sampai request <code>send_otp</code> berstatus 200.<br>'
+      + '4) Klik request tersebut &rarr; tab <b>Payload</b> &rarr; salin nilai <code>captcha_signature</code>.<br>'
+      + '5) Tempel di kolom di atas, lalu <b>Kirim ulang OTP</b>.<br><br>'
+      + '<b>device_report + szdet</b> (untuk device-check): di Network yang sama, cari request '
+      + '<code>POST .../v2/shpsec/web/report</code> &rarr; tab <b>Payload</b> = isi <code>device_report</code>; '
+      + 'tab <b>Headers</b> &rarr; Request Headers &rarr; baris <code>szdet</code> = nilai szdet. '
+      + 'Tempel keduanya di panel <b>Identitas perangkat</b>.</div></div>';
+  });
+  $('#btnRetryOtp').addEventListener('click', async () => {
+    const btn = $('#btnRetryOtp');
+    if (!retryState) { toast('Kirim OTP dulu supaya ada state retry', 'err'); return; }
+    const sig = $('#f-captcha-retry').value.trim();
+    const ans = $('#f-captcha-answer').value.trim();
+    if (!sig && !ans) { toast('Isi captcha_signature atau jawaban captcha dulu', 'err'); return; }
+    busy(btn, true, 'Mengirim ulang…');
+    const res = await api('/api/shopee/otp/retry', {
+      retry: retryState,
+      captcha_signature: sig || undefined,
+      captcha_answer: ans || undefined,
+      captcha_token: capToken || undefined,
+      captcha_scene_id: capScene || undefined,
+      phone: phone.value.trim() || undefined,
+    });
+    busy(btn, false);
+    renderResp($('#retryResp'), res);
+    const d = res.data || {};
+    if (res.ok) {
+      flow.challenge = d.challenge;
+      hideCaptchaPanel();
+      sideState('ok', 'OTP terkirim ulang',
+        '<p class="side-note">Channel: ' + esc(chName(d.channel)) + ' · bukti: ' + (d.send_verified ? 'terverifikasi' : 'tidak ada') + '</p>'
+        + traceHtml(d.trace));
+      copyBtn('#btnCopyChallenge', d.challenge);
+      copyBtn('#btnCopyTrace', JSON.stringify(d.trace || [], null, 2));
+      renderRT({ step: 'OTP terkirim', badge: 'ok', phone: phone.value.trim(), channel: d.channel, evidence: d.evidence, challenge: d.challenge, trace: d.trace, expiresAt: Date.now() + 5 * 60 * 1000 });
+      setStep(2, 'done'); unlock(3); setStep(3, 'active');
+      $('#f-otp').focus();
+      toast('OTP terkirim ulang, masukkan kodenya');
+    } else {
+      if (d.retry) showCaptchaPanel(d);
+      else sideState('err', 'Kirim ulang gagal', '<p class="side-note">' + esc(d.error || '') + '</p>' + (d.hint ? '<p class="side-note">' + esc(d.hint) + '</p>' : ''));
+      toast('Kirim ulang gagal', 'err');
+    }
+    loadAudit();
+  });
+
+  /* --- step 2: send OTP --- */
+  $('#btnOtp').addEventListener('click', async () => {
+    const btn = $('#btnOtp');
+    if (!phone.value.trim()) { toast('Isi nomor HP dulu', 'err'); return; }
+    busy(btn, true, 'Mengirim OTP…');
+    sideState('busy', 'Mengirim OTP…', '<p class="side-empty">Login page → device-risk → password → setelan OTP → send_otp.</p>');
+    renderRT({ step: 'mengirim OTP', badge: 'busy', phone: phone.value.trim() });
+    const body = { phone: phone.value.trim() };
+    if (pass.value) body.password = pass.value;
+    if ($('#f-channel').value) body.channel = Number($('#f-channel').value);
+    if ($('#f-captcha').value.trim()) body.captcha_signature = $('#f-captcha').value.trim();
+    // jawaban captcha hanya relevan di panel retry (dikirim lewat /otp/retry)
+    const res = await api('/api/shopee/otp', body);
+    busy(btn, false);
+    const box = $('#otpResp');
+    box.classList.add('show');
+    const d = res.data || {};
+    let html = '<div class="resp-bar"><span class="tag ' + (res.ok ? 's2' : 's4') + '">' + res.status + '</span><span>' + res.ms + ' ms</span></div>';
+    if (res.ok) {
+      flow.challenge = d.challenge;
+      html += '<div class="alert ok"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m5 13 4 4L19 7"/></svg>'
+        + '<div><b>OTP dikirim via ' + esc(chName(d.channel)) + '</b>'
+        + (d.channels && d.channels.length ? 'Channel tersedia: ' + esc(d.channels.join(', ')) + '. ' : '')
+        + (d.send_verified ? 'Pengiriman terverifikasi Shopee. ' : '')
+        + 'Challenge berlaku 5 menit.</div></div>';
+      html += traceHtml(d.trace);
+      html += '<pre>' + esc(JSON.stringify({ success: d.success, channel: d.channel, channels: d.channels, send_verified: d.send_verified, evidence: d.evidence, trace: d.trace }, null, 2)) + '</pre>';
+      box.innerHTML = html;
+
+      // panel KANAN: respons challenge
+      hideCaptchaPanel();
+      sideState('ok', 'OTP terkirim via ' + chName(d.channel),
+        '<div class="id-row"><span class="k">channel</span><span class="v ok">' + esc(String(d.channel)) + ' · ' + esc(chName(d.channel)) + '</span></div>'
+        + '<div class="id-row"><span class="k">tersedia</span><span class="v">' + esc((d.channels || []).join(', ') || '—') + '</span></div>'
+        + '<div class="id-row"><span class="k">bukti kirim</span><span class="v ' + (d.send_verified ? 'ok' : 'bad') + '">' + (d.send_verified ? 'terverifikasi' : 'tidak ada') + '</span></div>'
+        + (d.evidence ? '<div class="id-row"><span class="k">otp_token</span><span class="v">' + esc(String(d.evidence.otp_token || '—')) + '</span></div>' : '')
+        + '<div class="id-row"><span class="k">berlaku</span><span class="v">' + (d.evidence && d.evidence.expire ? esc(d.evidence.expire) + ' detik' : '5 menit') + '</span></div>'
+        + traceHtml(d.trace));
+      copyBtn('#btnCopyChallenge', d.challenge);
+      copyBtn('#btnCopyTrace', JSON.stringify(d.trace || [], null, 2));
+      renderRT({ step: 'OTP terkirim', badge: 'ok', phone: d.phone || phone.value.trim(), channel: d.channel, evidence: d.evidence, challenge: d.challenge, trace: d.trace, expiresAt: Date.now() + 5 * 60 * 1000 });
+
+      setStep(2, 'done'); unlock(3); setStep(3, 'active');
+      $('#f-otp').focus();
+      toast('OTP terkirim, masukkan kodenya');
+    } else {
+      renderResp(box, res);
+      const code = String(d.code || '');
+      const chLabel = { CAPTCHA_REQUIRED: 'Captcha', DEVICE_BLOCKED: 'Device-check', RATE_LIMITED: 'Rate limit', OTP_UNVERIFIED: 'Tidak terverifikasi', PASSWORD_REQUIRED: 'Perlu password' }[code] || 'Gagal';
+      if (d.retry) showCaptchaPanel(d);
+      else sideState('err', 'OTP gagal dikirim · ' + chLabel,
+        '<p class="side-note">' + esc(d.error || '') + '</p>' + (d.hint ? '<p class="side-note">' + esc(d.hint) + '</p>' : ''));
+      renderRT({ step: 'gagal', badge: 'bad', phone: phone.value.trim(), evidence: false, trace: d.trace });
+      copyBtn('#btnCopyChallenge', '');
+      copyBtn('#btnCopyTrace', JSON.stringify(d.trace || [], null, 2));
+      if (code === 'PASSWORD_REQUIRED') { setStep(1, 'active'); pass.focus(); }
+      toast('OTP gagal dikirim', 'err');
+    }
+    loadAudit();
+  });
+
+  /* --- step 3: verify --- */
+  $('#btnVerify').addEventListener('click', async () => {
+    const btn = $('#btnVerify');
+    const otp = $('#f-otp').value.trim();
+    if (!flow.challenge) { toast('Kirim OTP dulu', 'err'); return; }
+    if (!/^\d{4,10}$/.test(otp)) { toast('OTP harus 4–10 digit', 'err'); $('#f-otp').focus(); return; }
+    busy(btn, true, 'Memverifikasi…');
+    const res = await api('/api/shopee/verify', {
+      challenge: flow.challenge, otp, save: $('#f-save').value === '1', phone: phone.value.trim()
+    });
+    busy(btn, false);
+    const box = $('#verifyResp');
+    box.classList.add('show');
+    const d = res.data || {};
+    if (res.ok && d.select) {
+      flow.verification = d.verification;
+      flow.merchants = d.merchants || [];
+      box.innerHTML = '<div class="alert warn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>'
+        + '<div><b>Akun ini punya ' + flow.merchants.length + ' merchant</b>Pilih satu untuk melanjutkan — tidak perlu OTP baru.</div></div>';
+      $('#merchantPick').innerHTML = '<div class="merchants">' + flow.merchants.map(m =>
+        '<button class="merchant" data-mid="' + esc(m.id) + '"><span class="n">' + esc(m.name || '(tanpa nama)') + '</span><span class="i">' + esc(m.id) + '</span></button>'
+      ).join('') + '</div>';
+      $$('#merchantPick .merchant').forEach(b => b.addEventListener('click', () => pickMerchant(b.dataset.mid)));
+      sideState('warn', 'Pilih merchant', '<p class="side-note">' + flow.merchants.length + ' merchant bisa diakses. Pilih di langkah 3 — OTP tidak perlu diulang.</p>');
+      toast('Pilih merchant dulu');
+      return;
+    }
+    if (res.ok) {
+      showToken(d);
+      setStep(3, 'done'); unlock(4); setStep(4, 'done');
+      toast('Login ShopeePay berhasil');
+    } else {
+      renderResp(box, res);
+      sideState('err', 'Verifikasi gagal', '<p class="side-note">' + esc(d.error || '') + '</p>' + (d.hint ? '<p class="side-note">' + esc(d.hint) + '</p>' : ''));
+      toast('Verifikasi gagal', 'err');
+    }
+    loadAudit();
+  });
+
+  async function pickMerchant(mid){
+    const res = await api('/api/shopee/select', {
+      verification: flow.verification, merchant_id: mid, save: $('#f-save').value === '1'
+    });
+    if (res.ok) {
+      $('#merchantPick').innerHTML = '';
+      showToken(res.data);
+      setStep(3, 'done'); unlock(4); setStep(4, 'done');
+      toast('Merchant dipilih, token siap');
+    } else {
+      renderResp($('#verifyResp'), res);
+      toast('Gagal memilih merchant', 'err');
+    }
+  }
+
+  loadIdentity();
+  loadAudit();
+}
+
+/* ============================================================
+   status + auto refresh
+   ============================================================ */
+let statusCache = null;
+
+async function refreshStatus(){
+  const res = await api('/api/token/status', undefined, 'GET');
+  if (!res.ok) return;
+  statusCache = res.data;
+  const g = res.data.gopay || {}, s = res.data.shopee || {};
+
+  const setPill = (id, st) => {
+    const el = $(id);
+    if (!el) return;
+    el.classList.remove('on', 'off');
+    el.classList.add(st.hasToken ? 'on' : 'off');
+    const lbl = el.querySelector('.lbl');
+    if (lbl) lbl.textContent = (id === '#pillGopay' ? 'GoPay' : 'Shopee') + (st.hasToken ? ' · aktif' : ' · kosong');
+  };
+  setPill('#pillGopay', g);
+  setPill('#pillShopee', s);
+
+  const hs = (id, st) => {
+    const el = $(id);
+    if (!el) return;
+    el.classList.remove('ok', 'bad');
+    if (!st.hasToken) { el.textContent = 'belum login'; el.classList.add('bad'); return; }
+    if (st.msLeft != null && st.msLeft <= 0) { el.textContent = 'kedaluwarsa'; el.classList.add('bad'); return; }
+    el.textContent = st.msLeft != null ? 'sisa ' + fmtLeft(st.msLeft) : 'aktif';
+    el.classList.add('ok');
+  };
+  hs('#hsGopay', g);
+  hs('#hsShopee', s);
+
+  const lb = $('#loopBadge');
+  if (lb) lb.textContent = res.data.loop ? 'loop server aktif' : 'tick manual';
+
+  $$('#autoGrid .stat-card').forEach(card => {
+    const p = card.dataset.prov;
+    const st = p === 'gopay' ? g : s;
+    const set = (k, v, cls) => {
+      const el = $('[data-k="' + k + '"]', card);
+      if (!el) return;
+      el.textContent = v;
+      el.classList.remove('ok', 'bad', 'warn');
+      if (cls) el.classList.add(cls);
+    };
+    set('token', st.hasToken ? 'ada' : 'kosong', st.hasToken ? 'ok' : 'bad');
+    set('left', st.msLeft != null ? fmtLeft(st.msLeft) : '—', st.msLeft != null && st.msLeft < 600000 ? 'warn' : '');
+    set('last', st.lastRefreshAt ? fmtAgo(st.ageMs) : 'belum pernah');
+    const tg = $('[data-auto-toggle]', card);
+    if (tg && st.auto) tg.checked = !!st.auto.enabled;
+    const mi = $('[data-auto-min]', card);
+    if (mi && st.auto && document.activeElement !== mi) mi.value = st.auto.minutes;
+  });
+}
+
+function initAuto(){
+  $$('#autoGrid .stat-card').forEach(card => {
+    const p = card.dataset.prov;
+    $('[data-save]', card).addEventListener('click', async () => {
+      const enabled = $('[data-auto-toggle]', card).checked;
+      const minutes = Number($('[data-auto-min]', card).value) || 60;
+      const res = await api('/api/auto/config', { provider: p, enabled, minutes });
+      if (res.ok) { toast('Pengaturan ' + p + ' disimpan'); refreshStatus(); }
+      else toast('Gagal menyimpan', 'err');
+    });
+    $('[data-refresh]', card).addEventListener('click', async () => {
+      const btn = $('[data-refresh]', card);
+      busy(btn, true, 'Refresh…');
+      const res = await api('/api/refresh', { provider: p });
+      busy(btn, false);
+      if (res.ok) toast('Token ' + p + ' diperbarui');
+      else toast((res.data && res.data.error) || 'Refresh gagal', 'err');
+      refreshStatus();
+    });
+  });
+
+  // tick tiap 60 detik selama halaman terbuka (pengganti cron di Vercel)
+  setInterval(() => { api('/api/auto/tick', {}).catch(() => {}); }, 60000);
+  setInterval(refreshStatus, 30000);
+}
+
+/* ============================================================
+   drawer / login / misc
+   ============================================================ */
+function initChrome(){
+  const drawer = $('#drawer'), overlay = $('#overlay'), btn = $('#menuBtn');
+  const open = () => { drawer.classList.add('show'); overlay.classList.add('show'); drawer.setAttribute('aria-hidden','false'); btn.setAttribute('aria-expanded','true'); };
+  const close = () => { drawer.classList.remove('show'); overlay.classList.remove('show'); drawer.setAttribute('aria-hidden','true'); btn.setAttribute('aria-expanded','false'); };
+  btn.addEventListener('click', open);
+  $('#closeDrawer').addEventListener('click', close);
+  overlay.addEventListener('click', close);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+  $$('#drawer a[href^="#"]').forEach(a => a.addEventListener('click', close));
+
+  $('#dRefreshAll').addEventListener('click', async e => {
+    e.preventDefault(); close();
+    const res = await api('/api/auto/tick', {});
+    toast(res.ok ? 'Tick dijalankan' : 'Tick gagal', res.ok ? '' : 'err');
+    refreshStatus();
+  });
+  $('#dLogout').addEventListener('click', async e => {
+    e.preventDefault(); close();
+    const res = await api('/api/shopee/logout', {});
+    toast(res.ok ? 'Sesi Shopee dihapus' : 'Gagal', res.ok ? '' : 'err');
+    refreshStatus();
+  });
+  $('#dHelpOtp').addEventListener('click', e => {
+    e.preventDefault(); close();
+    document.getElementById('otpFlow').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('#btnDiagHelp').click();
+  });
+  $('#dManualToken').addEventListener('click', e => {
+    e.preventDefault(); close();
+    const card = $$('.card').find(c => c.querySelector('.p') && c.querySelector('.p').textContent.includes('/api/shopee/otp'));
+    if (card) { card.classList.add('open'); card.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  });
+
+  // login
+  const doLogin = async () => {
+    const pw = $('#loginPass').value;
+    const res = await api('/api/admin/login', { password: pw });
+    if (res.ok) {
+      $('#loginModal').classList.remove('show');
+      $('#loginPass').value = '';
+      toast('Berhasil masuk');
+      if (loginResolve) { const r = loginResolve; loginResolve = null; r(); }
+      refreshStatus();
+    } else toast((res.data && res.data.error) || 'Password salah', 'err');
+  };
+  $('#loginBtn').addEventListener('click', doLogin);
+  $('#loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+  if (window.__BOOT.locked && !window.__BOOT.admin) showLogin();
+}
+
+/* ============================================================
+   boot
+   ============================================================ */
+mount();
+initSearch();
+initFlow();
+initAuto();
+initChrome();
+refreshStatus();
+})();
+</script>
+</body>
+</html>

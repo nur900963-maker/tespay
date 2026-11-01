@@ -1,0 +1,15 @@
+node_modules
+.env
+.env.*
+!.env.example
+data/
+*.tmp
+.vercel
+
+# Jangan pernah commit file berisi rahasia
+config.local.js
+*.pem
+*.key
+secret.key
+identity.json
+audit.jsonl
