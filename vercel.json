@@ -6,25 +6,34 @@
       "src": "api/index.js",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["views/**", "config.js", "lib/**", "GoMerchant.js"]
+        "includeFiles": [
+          "views/**",
+          "config.js",
+          "lib/**",
+          "GoMerchant.js"
+        ],
+        "maxDuration": 30
       }
     }
   ],
   "rewrites": [
-    { "source": "/(.*)", "destination": "/api/index.js" }
-  ],
-  "functions": {
-    "api/index.js": {
-      "memory": 1024,
-      "maxDuration": 30
+    {
+      "source": "/(.*)",
+      "destination": "/api/index.js"
     }
-  },
+  ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "same-origin" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "same-origin"
+        }
       ]
     }
   ]
