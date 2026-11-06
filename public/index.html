@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Vincent Pay — Gopay x Shoppepay</title>
+<meta name="description" content="Console OTP dan QRIS untuk GoPay Merchant dan ShopeePay Partner." />
+<meta name="theme-color" content="#ffffff" />
+<link rel="icon" href="asset/favicon.png" />
+<link rel="apple-touch-icon" href="asset/favicon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/app.css?v=4.0.2" />
+</head>
+<body>
+
+<div class="bg-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="https://vincentpay.id" target="_blank" rel="noopener" aria-label="Vincent Pay — buka website">
+      <img src="asset/logo.png" alt="Vincent Pay" class="brand-logo" width="40" height="40" />
+      <span class="brand-text">
+        <strong>Vincent Pay</strong>
+        <small>Gopay x Shoppepay</small>
+      </span>
+    </a>
+
+    <nav class="topnav" aria-label="Navigasi utama">
+      <a href="#otp" class="topnav-link is-active">OTP</a>
+      <a href="#qris" class="topnav-link">QRIS</a>
+      <a href="#panduan" class="topnav-link">Panduan</a>
+    </nav>
+
+    <div class="topbar-actions">
+      <span class="key-pill" id="keyPill" data-state="empty">
+        <span class="dot"></span><span id="keyPillText">API key belum diisi</span>
+      </span>
+      <button class="icon-btn" id="btnSettings" type="button" aria-label="Pengaturan API key" title="Pengaturan">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9v.09a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+
+  <section class="hero">
+    <div class="hero-copy">
+      <span class="eyebrow">Console merchant</span>
+      <h1>Vincent Pay <span class="grad">Gopay x Shoppepay</span></h1>
+      <p class="hero-sub">Kirim OTP, ambil token merchant, dan bikin QRIS dinamis dari satu halaman. Nomor, API key, dan password tersimpan di perangkat ini.</p>
+    </div>
+    <div class="hero-stats">
+      <div class="stat">
+        <span class="stat-label">Provider</span>
+        <span class="stat-value">2 aktif</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Sesi</span>
+        <span class="stat-value" id="statSession">Belum ada</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Penyimpanan</span>
+        <span class="stat-value">Lokal</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="static-note" id="staticNote" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>
+    <span>Mode pratinjau: QRIS berjalan penuh di browser. Request OTP butuh server — jalankan <code>npm start</code>.</span>
+  </div>
+
+  <div class="layout">
+
+    <!-- ============ KOLOM UTAMA ============ -->
+    <div class="col-main">
+
+      <!-- ---------- REQUEST OTP ---------- -->
+      <article class="card card--blue" id="otp">
+        <header class="card-head">
+          <div class="card-head-top">
+            <span class="method method--blue">POST</span>
+            <code class="endpoint">/api/otp/request</code>
+            <span class="step-tag">Langkah 1</span>
+          </div>
+          <h2>Request OTP</h2>
+          <p class="card-desc">Pilih provider, isi nomor merchant, lalu kirim kode. Password hanya perlu kalau akun ShopeePay kamu memakainya.</p>
+        </header>
+
+        <div class="card-body">
+          <div class="provider-switch" role="tablist" aria-label="Pilih provider">
+            <button class="provider is-active" type="button" role="tab" aria-selected="true" data-provider="shopee">
+              <span class="provider-mark provider-mark--shopee">SP</span>
+              <span class="provider-name">ShopeePay<small>Partner</small></span>
+            </button>
+            <button class="provider" type="button" role="tab" aria-selected="false" data-provider="gopay">
+              <span class="provider-mark provider-mark--gopay">GP</span>
+              <span class="provider-name">GoPay<small>Merchant</small></span>
+            </button>
+          </div>
+
+          <div class="field-grid">
+            <div class="field field--full">
+              <label for="inApikey">API key <span class="req">*</span></label>
+              <div class="input-wrap">
+                <input id="inApikey" type="password" autocomplete="off" spellcheck="false" placeholder="Tempel API key kamu" />
+                <button class="ghost-btn" type="button" data-toggle="inApikey" aria-label="Tampilkan API key">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+              <p class="hint">Dipakai untuk mengunci tombol Request dan Execute.</p>
+            </div>
+
+            <div class="field">
+              <label for="inPhone">Nomor HP <span class="req">*</span></label>
+              <div class="input-wrap">
+                <span class="prefix">+62</span>
+                <input id="inPhone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="812 3456 7890" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="inPassword">Password ShopeePay <span class="opt">opsional</span></label>
+              <div class="input-wrap">
+                <input id="inPassword" type="password" autocomplete="off" placeholder="Kosongkan kalau tidak dipakai" />
+                <button class="ghost-btn" type="button" data-toggle="inPassword" aria-label="Tampilkan password">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="field field--full" id="channelField">
+              <label for="inChannel">Channel OTP <span class="opt">opsional</span></label>
+              <div class="select-wrap">
+                <select id="inChannel">
+                  <option value="">Otomatis dari provider</option>
+                  <option value="1">WhatsApp</option>
+                  <option value="2">SMS</option>
+                  <option value="3">Email</option>
+                  <option value="5">Aplikasi Shopee</option>
+                </select>
+                <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn--blue" id="btnRequest" type="button">
+              <svg class="btn-ico" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              <span class="btn-label">Request OTP</span>
+              <span class="spinner" aria-hidden="true"></span>
+            </button>
+            <button class="btn-reset" id="btnResetOtp" type="button" aria-label="Kosongkan form" title="Kosongkan form">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+            </button>
+          </div>
+
+          <div class="urlbar">
+            <span class="urlbar-dot"></span>
+            <code>POST https://vincentpay.id/api/otp/request</code>
+          </div>
+        </div>
+      </article>
+
+      <!-- ---------- VERIFY OTP ---------- -->
+      <article class="card card--orange is-locked" id="verify">
+        <header class="card-head">
+          <div class="card-head-top">
+            <span class="method method--orange">POST</span>
+            <code class="endpoint">/api/otp/verify</code>
+            <span class="step-tag">Langkah 2</span>
+          </div>
+          <h2>Execute OTP</h2>
+          <p class="card-desc">Masukkan kode yang masuk, lalu tukar jadi token merchant. Token langsung tampil di panel hasil.</p>
+        </header>
+
+        <div class="card-body">
+          <div class="lock-note" id="verifyLock">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            <span>Kirim OTP dulu untuk membuka langkah ini.</span>
+          </div>
+
+          <div class="verify-body" id="verifyBody" hidden>
+            <div class="challenge-bar">
+              <div class="challenge-item">
+                <span class="challenge-label">Nomor</span>
+                <strong id="chPhone">—</strong>
+              </div>
+              <div class="challenge-item">
+                <span class="challenge-label">Channel</span>
+                <strong id="chChannel">—</strong>
+              </div>
+              <div class="challenge-item">
+                <span class="challenge-label">Berlaku</span>
+                <strong id="chTimer">10:00</strong>
+              </div>
+            </div>
+
+            <div class="field field--full">
+              <label for="inOtp">Kode OTP <span class="req">*</span></label>
+              <input id="inOtp" class="otp-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="• • • • • •" />
+              <p class="hint">4 sampai 10 digit, sesuai yang dikirim provider.</p>
+            </div>
+
+            <div class="actions">
+              <button class="btn btn--orange" id="btnVerify" type="button">
+                <svg class="btn-ico" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                <span class="btn-label">Execute</span>
+                <span class="spinner" aria-hidden="true"></span>
+              </button>
+              <button class="btn-reset" id="btnResend" type="button" aria-label="Kirim ulang OTP" title="Kirim ulang OTP">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- ---------- QRIS ---------- -->
+      <article class="card card--violet" id="qris">
+        <header class="card-head">
+          <div class="card-head-top">
+            <span class="method method--violet">POST</span>
+            <code class="endpoint">/api/qris/create</code>
+            <span class="step-tag">QRIS</span>
+          </div>
+          <h2>QRIS Dinamis</h2>
+          <p class="card-desc">Tempel QRIS statis tokomu, isi nominal, lalu bikin kode bayar baru. Bisa juga scan gambar QRIS untuk membaca isinya.</p>
+        </header>
+
+        <div class="card-body">
+          <div class="field-grid">
+            <div class="field field--full">
+              <label for="inStatic">QRIS statis <span class="req">*</span></label>
+              <div class="textarea-wrap">
+                <textarea id="inStatic" rows="3" spellcheck="false" placeholder="00020101021126..."></textarea>
+                <div class="textarea-tools">
+                  <button class="mini-btn" type="button" id="btnScanQris">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M3 12h18"/></svg>
+                    Scan gambar
+                  </button>
+                  <button class="mini-btn" type="button" id="btnInspect">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                    Periksa
+                  </button>
+                </div>
+              </div>
+              <input type="file" id="fileQris" accept="image/*" hidden />
+            </div>
+
+            <div class="field">
+              <label for="inAmount">Nominal <span class="req">*</span></label>
+              <div class="input-wrap">
+                <span class="prefix">Rp</span>
+                <input id="inAmount" type="text" inputmode="numeric" placeholder="15.000" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="inQrisProvider">Provider</label>
+              <div class="select-wrap">
+                <select id="inQrisProvider">
+                  <option value="shopee">ShopeePay</option>
+                  <option value="gopay">GoPay</option>
+                </select>
+                <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn--violet" id="btnCreateQris" type="button">
+              <svg class="btn-ico" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              <span class="btn-label">Buat QRIS</span>
+              <span class="spinner" aria-hidden="true"></span>
+            </button>
+            <button class="btn-reset" id="btnClearQris" type="button" aria-label="Bersihkan QRIS" title="Bersihkan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+            </button>
+          </div>
+        </div>
+      </article>
+
+      <!-- ---------- PANDUAN ---------- -->
+      <section class="guide" id="panduan">
+        <h2>Panduan singkat</h2>
+        <ol class="guide-list">
+          <li><span class="guide-num">1</span><div><strong>Isi API key</strong><p>Klik ikon pengaturan di kanan atas. Kunci ini yang membuka tombol Request dan Execute.</p></div></li>
+          <li><span class="guide-num">2</span><div><strong>Request OTP</strong><p>Pilih provider, isi nomor merchant. Kalau akun ShopeePay memakai password, isi juga kolomnya.</p></div></li>
+          <li><span class="guide-num">3</span><div><strong>Execute</strong><p>Masukkan kode OTP. Token merchant muncul di panel hasil dan bisa langsung disalin.</p></div></li>
+          <li><span class="guide-num">4</span><div><strong>Buat QRIS</strong><p>Tempel QRIS statis, isi nominal, lalu salin payload atau unduh gambarnya.</p></div></li>
+        </ol>
+      </section>
+    </div>
+
+    <!-- ============ PANEL HASIL ============ -->
+    <aside class="col-side">
+      <div class="panel panel--result" id="resultPanel">
+        <header class="panel-head">
+          <div class="panel-head-left">
+            <span class="badge-json">application/json</span>
+            <span class="panel-time" id="resultTime">—</span>
+          </div>
+          <button class="copy-btn" id="btnCopyResult" type="button" aria-label="Salin hasil">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>
+            <span>Copy</span>
+          </button>
+        </header>
+        <div class="panel-body">
+          <pre class="code" id="resultCode"><span class="c-muted">// Hasil request akan muncul di sini.</span></pre>
+        </div>
+        <footer class="panel-foot">
+          <span class="status-dot" id="resultStatus" data-state="idle"></span>
+          <span id="resultStatusText">Menunggu request</span>
+        </footer>
+      </div>
+
+      <div class="panel panel--qr" id="qrPanel" hidden>
+        <header class="panel-head">
+          <div class="panel-head-left">
+            <span class="badge-json badge-json--violet">image/png</span>
+            <span class="panel-time" id="qrAmount">—</span>
+          </div>
+          <button class="copy-btn" id="btnCopyPayload" type="button" aria-label="Salin payload QRIS">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>
+            <span>Copy</span>
+          </button>
+        </header>
+        <div class="qr-stage">
+          <img id="qrImage" alt="QRIS dinamis" />
+        </div>
+        <div class="qr-meta" id="qrMeta"></div>
+        <div class="qr-actions">
+          <a class="mini-btn mini-btn--solid" id="btnDownloadQr" download="qris.png" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 21h16"/></svg>
+            Unduh
+          </a>
+          <button class="mini-btn" id="btnCheckPay" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 6 9 17l-5-5"/></svg>
+            Cek bayar
+          </button>
+        </div>
+      </div>
+
+      <div class="panel panel--session">
+        <header class="panel-head panel-head--plain">
+          <h3>Sesi tersimpan</h3>
+          <button class="link-btn" id="btnForget" type="button">Hapus</button>
+        </header>
+        <ul class="session-list">
+          <li><span>Nomor</span><strong id="sessPhone">—</strong></li>
+          <li><span>API key</span><strong id="sessKey">—</strong></li>
+          <li><span>Password</span><strong id="sessPass">—</strong></li>
+          <li><span>Token</span><strong id="sessToken">—</strong></li>
+        </ul>
+        <p class="session-note">Tersimpan di browser ini, tetap ada walau kamu kembali beberapa hari lagi.</p>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<footer class="site-foot">
+  <div class="foot-inner">
+    <span>2026 Vincent Pay All Right</span>
+    <span class="foot-sep">·</span>
+    <span>Gopay x Shoppepay</span>
+  </div>
+</footer>
+
+<!-- ============ MODAL API KEY ============ -->
+<div class="modal" id="keyModal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="keyModalTitle">
+    <header class="modal-head">
+      <div>
+        <h2 id="keyModalTitle">API key</h2>
+        <p>Diperlukan sebelum menjalankan Request atau Execute.</p>
+      </div>
+      <button class="icon-btn icon-btn--sm" type="button" data-close aria-label="Tutup">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </header>
+    <div class="modal-body">
+      <div class="field field--full">
+        <label for="modalKey">Kunci akses</label>
+        <div class="input-wrap">
+          <input id="modalKey" type="password" autocomplete="off" spellcheck="false" placeholder="Masukkan API key" />
+          <button class="ghost-btn" type="button" data-toggle="modalKey" aria-label="Tampilkan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <p class="hint" id="keyHint">Kunci disimpan di perangkat ini saja.</p>
+      </div>
+    </div>
+    <footer class="modal-foot">
+      <button class="btn btn--ghost" type="button" data-close>Batal</button>
+      <button class="btn btn--blue" id="btnSaveKey" type="button">Simpan</button>
+    </footer>
+  </div>
+</div>
+
+<!-- ============ TOAST ============ -->
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+<script src="vendor/jsQR.js"></script>
+<script src="vendor/qrcode.js"></script>
+<script src="js/qris-core.js"></script>
+<script src="js/app.js?v=4.0.2"></script>
+</body>
+</html>

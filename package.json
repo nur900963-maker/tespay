@@ -1,0 +1,21 @@
+{
+  "name": "vincent-pay",
+  "version": "4.0.0",
+  "private": true,
+  "description": "Vincent Pay Gopay x Shoppepay - console OTP, QRIS dinamis, dan cek pembayaran",
+  "main": "app.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node app.js",
+    "test": "node test/run.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "express": "^4.21.1",
+    "qrcode": "^1.5.4",
+    "uuid": "^9.0.1"
+  }
+}
